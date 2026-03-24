@@ -700,17 +700,19 @@ function renderStory(wordIndices) {
     });
   });
 
-  // 再把剩余普通英文词也包装成可点击（排除已高亮词和极短词）
-  text = text.replace(/\b([a-zA-Z]{3,})\b/g, (match) => {
-    // 已经被高亮处理过的词（在 span 内）会被跳过，因为 span 本身不含 \b 边界
-    // 检查是不是已经高亮的词
-    if (highlightedWords.has(match.toLowerCase())) return match; // 已高亮，不重复处理
-    // 查这个词在词库里有没有
-    const wObj = KAOYAN_WORDS.find(w => w.word.toLowerCase() === match.toLowerCase());
-    if (!wObj) return match; // 词库里没有，不加链接
-    const idx = pool.indexOf(wObj);
-    return `<span class="story-plain-link" data-word="${match}" data-idx="${idx !== -1 ? idx : -1}" title="点击查词">${match}</span>`;
-  });
+  // 再把剩余普通英文词也包装成可点击
+  // 关键：只替换标签外的纯文本段，避免把 HTML 属性/标签名也替换掉
+  text = text.split(/(<[^>]+>)/).map((seg, i) => {
+    if (i % 2 === 1) return seg; // 奇数段是 <...> 标签，原样保留
+    // 偶数段是纯文本，在这里做词替换
+    return seg.replace(/\b([a-zA-Z]{3,})\b/g, (match) => {
+      if (highlightedWords.has(match.toLowerCase())) return match;
+      const wObj = KAOYAN_WORDS.find(w => w.word.toLowerCase() === match.toLowerCase());
+      if (!wObj) return match;
+      const idx = pool.indexOf(wObj);
+      return `<span class="story-plain-link" data-word="${match}" data-idx="${idx !== -1 ? idx : -1}" title="点击查词">${match}</span>`;
+    });
+  }).join('');
 
   document.getElementById('story-text').innerHTML = text;
 
