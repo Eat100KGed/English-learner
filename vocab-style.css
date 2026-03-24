@@ -1157,3 +1157,135 @@ body {
   color: var(--pixel-yellow);
 }
 
+/* ===================================================
+   新增：故事普通词链接（可点击查词，非高亮样式）
+   =================================================== */
+.story-plain-link {
+  cursor: pointer;
+  border-bottom: 1px dotted var(--text-muted);
+  transition: color .1s, background .1s;
+}
+.story-plain-link:hover {
+  color: var(--pixel-blue);
+  background: rgba(96,165,250,.12);
+  border-radius: 2px;
+  border-bottom-color: var(--pixel-blue);
+}
+
+/* ===================================================
+   新增：故事操作按钮行（换故事+翻译并排）
+   =================================================== */
+.story-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.story-actions .pixel-btn {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* ===================================================
+   新增：故事中文翻译区
+   =================================================== */
+.story-translation {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: rgba(96,165,250,.07);
+  border: 1.5px dashed var(--pixel-blue);
+  border-radius: 8px;
+  animation: fadeInUp .2s ease;
+}
+.translation-label {
+  font-family: var(--font-pixel);
+  font-size: .6rem;
+  color: var(--pixel-blue);
+  margin-bottom: 8px;
+  letter-spacing: .05em;
+}
+.translation-text {
+  font-size: .88rem;
+  color: var(--text-muted);
+  line-height: 1.8;
+}
+
+/* ===================================================
+   新增：打卡日历词义子浮层（移动端友好）
+   =================================================== */
+.cdd-def-popup {
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--bg-card2, #1e2233);
+  border: 2px solid var(--pixel-blue);
+  border-radius: 10px;
+  animation: fadeInUp .18s ease;
+  box-shadow: 3px 3px 0 #000;
+}
+.cdp-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.cdp-term {
+  font-family: var(--font-pixel);
+  font-size: .85rem;
+  color: var(--pixel-yellow);
+  flex: 1;
+}
+.cdp-audio {
+  background: var(--pixel-blue-dark, #1e40af);
+  border: 2px solid var(--pixel-blue);
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  padding: 3px 8px;
+  font-size: .85rem;
+  transition: background .1s;
+}
+.cdp-audio:hover { background: var(--pixel-blue); }
+.cdp-phonetic {
+  font-size: .78rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.cdp-def {
+  font-size: .88rem;
+  color: var(--text-main);
+  line-height: 1.6;
+  margin-bottom: 10px;
+  padding: 8px;
+  background: rgba(0,0,0,.2);
+  border-radius: 6px;
+}
+.cdp-actions {
+  display: flex;
+  gap: 8px;
+}
+.cdp-actions .pixel-btn.sm {
+  flex: 1;
+  font-size: .68rem;
+  padding: 8px 4px;
+}
+.cdp-hint {
+  margin-top: 8px;
+  font-size: .75rem;
+  color: var(--text-muted);
+  text-align: center;
+  min-height: 1.1em;
+}
+
+/* 词块点击态（移动端 active 反馈） */
+.word-grid-chip.cdd-chip:active {
+  transform: scale(.95);
+  opacity: .85;
+}
+
+/* ===================================================
+   iNEnglish：Logo 样式微调
+   =================================================== */
+.pixel-logo {
+  letter-spacing: .03em;
+}
+

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>考研英语词汇打卡 🎮</title>
+<title>iNEnglish — 考研词汇打卡</title>
 <link rel="stylesheet" href="vocab-style.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
 <!-- ===== 顶部导航 ===== -->
 <header class="top-bar">
   <div class="top-left">
-    <span class="pixel-logo">📖 词汇闯关</span>
+    <span class="pixel-logo">📖 iNEnglish</span>
   </div>
   <div class="top-stats">
     <div class="stat-item fire" title="连续打卡天数">
@@ -169,6 +169,22 @@
           <button class="swc-close" id="cdd-close">✕</button>
         </div>
         <div class="cdd-word-grid" id="cdd-word-grid"></div>
+        <!-- 点击词块后展示的释义子浮层 -->
+        <div class="cdd-def-popup hidden" id="cdd-def-popup">
+          <div class="cdp-header">
+            <span class="cdp-term" id="cdp-term"></span>
+            <button class="cdp-audio" id="cdp-audio" title="发音">🔊</button>
+            <button class="swc-close" id="cdp-close">✕</button>
+          </div>
+          <div class="cdp-phonetic" id="cdp-phonetic"></div>
+          <div class="cdp-def" id="cdp-def"></div>
+          <div class="cdp-actions">
+            <button class="pixel-btn wrong-btn sm" id="cdp-wrong">❌ 不认识</button>
+            <button class="pixel-btn hard-btn sm" id="cdp-hard">😅 模糊</button>
+            <button class="pixel-btn correct-btn sm" id="cdp-correct">✅ 认识</button>
+          </div>
+          <div class="cdp-hint" id="cdp-hint"></div>
+        </div>
       </div>
     </section>
 
@@ -176,13 +192,21 @@
     <section id="page-story" class="page">
       <div class="page-header">
         <h2 class="pixel-title">📜 今日故事</h2>
-        <p class="sub-text">用今日单词编成的短文，点击高亮单词查看释义</p>
+        <p class="sub-text">高亮词可点击查看释义，点击任意单词均可查词</p>
       </div>
       <div class="story-card" id="story-card">
         <div class="story-text" id="story-text">加载中...</div>
+        <!-- 中文翻译区域（默认折叠） -->
+        <div class="story-translation hidden" id="story-translation">
+          <div class="translation-label">📝 中文翻译</div>
+          <div class="translation-text" id="translation-text"></div>
+        </div>
         <div class="story-words" id="story-words"></div>
       </div>
-      <button class="pixel-btn" id="regen-story-btn">🎲 换一个故事</button>
+      <div class="story-actions">
+        <button class="pixel-btn" id="regen-story-btn">🎲 换一个故事</button>
+        <button class="pixel-btn secondary" id="toggle-translation-btn">🌐 中文翻译</button>
+      </div>
       <!-- 单词弹出卡片（点击故事高亮词触发） -->
       <div class="story-word-card hidden" id="story-word-card">
         <div class="swc-header">
