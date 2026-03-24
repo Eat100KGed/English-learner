@@ -5,6 +5,264 @@
 'use strict';
 
 // ====================================================
+// 抽象语录 & 学习梗图数据
+// ====================================================
+
+// 学习主题抽象搞笑语录
+const ABSTRACT_QUOTES = [
+  '我不是在背单词，我是在和遗忘做拉锯战，而且我在输🪚',
+  '单词背了忘，忘了背，背了又忘——这不是学习，这是薛定谔的词汇量',
+  '睡前背十个单词，睡着忘十一个，多亏了梦里又造了个新词',
+  '我的记忆曲线不是艾宾浩斯的，是过山车的🎢',
+  '脑子：容量已满，请清理后重试。我：删什么？脑子：单词。',
+  '今天计划背100个词，实际背了3个，但这3个我看了40遍，算精通了',
+  '单词表第一页永远是最熟悉的陌生人',
+  '我背单词的方式：abandon放弃→abandon背单词→abandon',
+  '考研英语：你以为你会了，其实你没会；你以为你没会，其实你更没会',
+  '学英语就像谈恋爱：刚开始激情四射，两周后开始摆烂',
+  '背单词APP的连续打卡提醒就是现代版"催命符"📱',
+  '我：今天背完这页。时间：11:58 PM。我：',
+  '遗忘是大脑的自我保护机制，我的大脑非常健康',
+  '单词本上密密麻麻的笔记，翻到第二页：此处一片空白',
+  'abandon, abolish, absent... 我每次都从A开始，从未到过Z',
+  '凌晨两点背单词，感觉自己文曲星下凡；早上七点，文曲星已回天庭',
+  '英语听力：语速×2，我的理解速度÷2，净亏4倍',
+  '做完一套真题感觉飞升，对答案原地爆炸，涅槃了🔥',
+  '我的词汇量：认识→见过→好像见过→没见过→这是英文吗',
+  '每天告诉自己今天一定好好学，每晚告诉自己明天一定好好学',
+  '"就再刷一条视频"——史上最贵的谎言',
+  '努力的尽头是什么？是发现别人比你更努力而且还在玩😇',
+  '我在用生命背单词，单词在用遗忘回报我',
+  '脑子是个好东西，可惜它跟我不是一路人',
+  '背单词的第一天：热血沸腾。第七天：活着就行。',
+];
+
+// 学习主题搞笑表情包（内嵌 SVG，永不挂）
+// 每张都是一个 data URI
+const ABSTRACT_MEMES = (() => {
+  // 辅助：把 SVG 字符串转成 data URI
+  const svg2url = s => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
+
+  return [
+
+    // 1. This is fine 🔥 —— 大火里背单词
+    svg2url(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" style="background:#1a1a2e">
+      <rect x="0" y="100" width="200" height="60" fill="#c0392b" rx="0"/>
+      <rect x="10" y="80" width="180" height="30" fill="#e74c3c" rx="0"/>
+      <!-- 火焰 -->
+      <ellipse cx="30" cy="95" rx="18" ry="28" fill="#e67e22" opacity=".9"/>
+      <ellipse cx="30" cy="90" rx="11" ry="20" fill="#f1c40f" opacity=".9"/>
+      <ellipse cx="80" cy="88" rx="22" ry="32" fill="#e67e22" opacity=".9"/>
+      <ellipse cx="80" cy="82" rx="13" ry="22" fill="#f1c40f" opacity=".8"/>
+      <ellipse cx="150" cy="92" rx="20" ry="28" fill="#e67e22" opacity=".9"/>
+      <ellipse cx="150" cy="86" rx="12" ry="18" fill="#f1c40f" opacity=".8"/>
+      <!-- 小人坐着 -->
+      <circle cx="118" cy="68" r="14" fill="#f5cba7" stroke="#000" stroke-width="1.5"/>
+      <rect x="104" y="82" width="28" height="20" fill="#3498db" rx="3"/>
+      <rect x="99" y="82" width="10" height="4" fill="#3498db" rx="2"/>
+      <rect x="119" y="82" width="10" height="4" fill="#3498db" rx="2"/>
+      <rect x="107" y="100" width="10" height="15" fill="#2c3e50" rx="2"/>
+      <rect x="119" y="100" width="10" height="15" fill="#2c3e50" rx="2"/>
+      <!-- 单词本 -->
+      <rect x="96" y="88" width="24" height="18" fill="#fff" rx="2" stroke="#000" stroke-width="1"/>
+      <line x1="99" y1="92" x2="117" y2="92" stroke="#aaa" stroke-width="1"/>
+      <line x1="99" y1="96" x2="117" y2="96" stroke="#aaa" stroke-width="1"/>
+      <line x1="99" y1="100" x2="117" y2="100" stroke="#aaa" stroke-width="1"/>
+      <!-- 表情：微笑 -->
+      <circle cx="113" cy="65" r="2" fill="#333"/>
+      <circle cx="123" cy="65" r="2" fill="#333"/>
+      <path d="M112 70 Q118 75 124 70" stroke="#333" stroke-width="1.5" fill="none"/>
+      <!-- 文字 -->
+      <text x="100" y="145" font-size="11" fill="#fff" font-family="monospace" text-anchor="middle">This is fine.</text>
+      <text x="100" y="157" font-size="9" fill="#f1c40f" font-family="monospace" text-anchor="middle">（背单词中🔥）</text>
+    </svg>`),
+
+    // 2. 脑子转圈 loading —— 记忆已满
+    svg2url(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" style="background:#0f0f23">
+      <!-- 大脑轮廓 -->
+      <ellipse cx="100" cy="72" rx="55" ry="45" fill="#c39bd3" stroke="#8e44ad" stroke-width="2"/>
+      <path d="M55 72 Q45 55 60 45 Q70 35 85 42" stroke="#8e44ad" stroke-width="2" fill="none"/>
+      <path d="M145 72 Q155 55 140 45 Q130 35 115 42" stroke="#8e44ad" stroke-width="2" fill="none"/>
+      <path d="M70 80 Q75 90 85 88 Q95 86 100 92 Q105 86 115 88 Q125 90 130 80" stroke="#8e44ad" stroke-width="2" fill="none"/>
+      <!-- ERROR 图标 -->
+      <circle cx="100" cy="68" r="22" fill="#e74c3c" opacity=".85"/>
+      <text x="100" y="63" font-size="20" text-anchor="middle" fill="#fff">⚠</text>
+      <text x="100" y="80" font-size="8" text-anchor="middle" fill="#fff" font-family="monospace">MEMORY FULL</text>
+      <!-- 进度条 -->
+      <rect x="30" y="125" width="140" height="12" rx="6" fill="#2c2c4e"/>
+      <rect x="30" y="125" width="137" height="12" rx="6" fill="#e74c3c"/>
+      <text x="100" y="135" font-size="8" text-anchor="middle" fill="#fff" font-family="monospace">RAM: 100% (单词已满)</text>
+      <!-- 底部文字 -->
+      <text x="100" y="155" font-size="10" text-anchor="middle" fill="#c39bd3" font-family="monospace">请删除无用记忆后重试</text>
+    </svg>`),
+
+    // 3. 艾宾浩斯曲线 vs 我的实际情况
+    svg2url(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" style="background:#1a1a2e">
+      <!-- 坐标轴 -->
+      <line x1="25" y1="20" x2="25" y2="120" stroke="#7f8c8d" stroke-width="1.5"/>
+      <line x1="25" y1="120" x2="185" y2="120" stroke="#7f8c8d" stroke-width="1.5"/>
+      <text x="13" y="24" font-size="8" fill="#7f8c8d" font-family="monospace">记</text>
+      <text x="13" y="34" font-size="8" fill="#7f8c8d" font-family="monospace">忆</text>
+      <text x="100" y="133" font-size="8" fill="#7f8c8d" text-anchor="middle" font-family="monospace">时间 →</text>
+      <!-- 教科书曲线（蓝色，平缓下降） -->
+      <path d="M30 30 Q70 45 110 65 Q150 82 180 90" stroke="#3498db" stroke-width="2" fill="none" stroke-dasharray="4,2"/>
+      <text x="183" y="88" font-size="7" fill="#3498db" font-family="monospace">理论</text>
+      <!-- 我的实际曲线（红色，急速崩坏） -->
+      <path d="M30 30 Q40 32 55 115 Q80 118 185 118" stroke="#e74c3c" stroke-width="2.5" fill="none"/>
+      <text x="183" y="115" font-size="7" fill="#e74c3c" font-family="monospace">我</text>
+      <!-- 悲剧点 -->
+      <circle cx="55" cy="115" r="4" fill="#f1c40f"/>
+      <text x="58" y="110" font-size="7" fill="#f1c40f" font-family="monospace">睡了一觉</text>
+      <!-- 标题 -->
+      <text x="100" y="145" font-size="10" fill="#fff" text-anchor="middle" font-family="monospace">艾宾浩斯 vs 现实</text>
+      <text x="100" y="157" font-size="8.5" fill="#e74c3c" text-anchor="middle" font-family="monospace">理论很丰满，脑子很骨感</text>
+    </svg>`),
+
+    // 4. 凌晨学习死亡现场
+    svg2url(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" style="background:#05050f">
+      <!-- 月亮 -->
+      <circle cx="165" cy="25" r="18" fill="#f1c40f" opacity=".9"/>
+      <circle cx="172" cy="20" r="14" fill="#05050f"/>
+      <!-- 星星 -->
+      <text x="20" y="22" font-size="10" fill="#fff" opacity=".7">★</text>
+      <text x="55" y="15" font-size="7" fill="#fff" opacity=".5">★</text>
+      <text x="130" y="18" font-size="8" fill="#fff" opacity=".6">★</text>
+      <!-- 书桌 -->
+      <rect x="20" y="105" width="160" height="8" fill="#5d4037" rx="2"/>
+      <rect x="30" y="113" width="10" height="30" fill="#4e342e"/>
+      <rect x="160" y="113" width="10" height="30" fill="#4e342e"/>
+      <!-- 单词书 -->
+      <rect x="55" y="78" width="35" height="28" fill="#e8e8e8" rx="1" stroke="#ccc" stroke-width="1"/>
+      <rect x="55" y="78" width="5" height="28" fill="#e74c3c" rx="1"/>
+      <line x1="63" y1="84" x2="87" y2="84" stroke="#bbb" stroke-width="1"/>
+      <line x1="63" y1="88" x2="87" y2="88" stroke="#bbb" stroke-width="1"/>
+      <line x1="63" y1="92" x2="87" y2="92" stroke="#bbb" stroke-width="1"/>
+      <line x1="63" y1="96" x2="80" y2="96" stroke="#bbb" stroke-width="1"/>
+      <!-- 趴睡的小人 -->
+      <ellipse cx="120" cy="98" rx="22" ry="12" fill="#f5cba7" stroke="#000" stroke-width="1"/>
+      <circle cx="105" cy="88" r="10" fill="#f5cba7" stroke="#000" stroke-width="1"/>
+      <circle cx="103" cy="86" r="1.5" fill="#333"/>
+      <circle cx="109" cy="86" r="1.5" fill="#333"/>
+      <path d="M102 91 Q106 89 110 91" stroke="#333" stroke-width="1" fill="none"/>
+      <!-- ZZZ -->
+      <text x="125" y="78" font-size="11" fill="#7fb3f5" font-family="monospace" opacity=".9">Z</text>
+      <text x="135" y="68" font-size="9" fill="#7fb3f5" font-family="monospace" opacity=".7">z</text>
+      <text x="143" y="60" font-size="7" fill="#7fb3f5" font-family="monospace" opacity=".5">z</text>
+      <!-- 文字 -->
+      <text x="100" y="148" font-size="9.5" fill="#f1c40f" text-anchor="middle" font-family="monospace">凌晨2点背单词</text>
+      <text x="100" y="159" font-size="9" fill="#7f8c8d" text-anchor="middle" font-family="monospace">背着背着就睡着了</text>
+    </svg>`),
+
+    // 5. Drake 指指点点（背 vs 不背）
+    svg2url(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" style="background:#1a1a2e">
+      <!-- 上格（拒绝）-->
+      <rect x="0" y="0" width="200" height="80" fill="#2c3e50"/>
+      <!-- Drake 拒绝手势 -->
+      <circle cx="40" cy="30" r="16" fill="#f5cba7" stroke="#000" stroke-width="1.5"/>
+      <rect x="28" y="45" width="24" height="22" fill="#e74c3c" rx="3"/>
+      <!-- 拒绝表情 -->
+      <circle cx="35" cy="27" r="2" fill="#333"/>
+      <circle cx="45" cy="27" r="2" fill="#333"/>
+      <path d="M35 35 Q40 31 45 35" stroke="#333" stroke-width="1.5" fill="none"/>
+      <!-- 拒绝的X -->
+      <line x1="32" y1="22" x2="38" y2="16" stroke="#e74c3c" stroke-width="2.5"/>
+      <line x1="32" y1="16" x2="38" y2="22" stroke="#e74c3c" stroke-width="2.5"/>
+      <text x="110" y="35" font-size="11" fill="#ecf0f1" font-family="monospace" text-anchor="middle">认真背单词</text>
+      <text x="110" y="50" font-size="9.5" fill="#95a5a6" font-family="monospace" text-anchor="middle">每天打卡100个</text>
+      <!-- 下格（接受）-->
+      <rect x="0" y="80" width="200" height="80" fill="#34495e"/>
+      <!-- Drake 指向手势 -->
+      <circle cx="40" cy="110" r="16" fill="#f5cba7" stroke="#000" stroke-width="1.5"/>
+      <rect x="28" y="125" width="24" height="22" fill="#e74c3c" rx="3"/>
+      <!-- 开心表情 -->
+      <circle cx="35" cy="107" r="2" fill="#333"/>
+      <circle cx="45" cy="107" r="2" fill="#333"/>
+      <path d="M35 114 Q40 119 45 114" stroke="#333" stroke-width="1.5" fill="none"/>
+      <!-- 指向箭头 -->
+      <text x="57" y="118" font-size="16" fill="#f1c40f">👉</text>
+      <text x="110" y="112" font-size="11" fill="#ecf0f1" font-family="monospace" text-anchor="middle">"就刷一条视频"</text>
+      <text x="110" y="128" font-size="9.5" fill="#95a5a6" font-family="monospace" text-anchor="middle">然后刷了仨小时</text>
+    </svg>`),
+
+    // 6. 考研人精神状态检测
+    svg2url(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" style="background:#0d1117">
+      <text x="100" y="22" font-size="11" fill="#58a6ff" text-anchor="middle" font-family="monospace">🔬 考研人精神检测</text>
+      <!-- 仪表盘 -->
+      <path d="M30 110 A70 70 0 0 1 170 110" stroke="#30363d" stroke-width="14" fill="none"/>
+      <path d="M30 110 A70 70 0 0 1 170 110" stroke="url(#grad)" stroke-width="14" fill="none" stroke-dasharray="220" stroke-dashoffset="0"/>
+      <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#2ecc71"/>
+          <stop offset="40%" stop-color="#f1c40f"/>
+          <stop offset="75%" stop-color="#e67e22"/>
+          <stop offset="100%" stop-color="#e74c3c"/>
+        </linearGradient>
+      </defs>
+      <!-- 指针（指向最右/崩溃区） -->
+      <line x1="100" y1="110" x2="158" y2="62" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="100" cy="110" r="5" fill="#fff"/>
+      <!-- 刻度标签 -->
+      <text x="22" y="108" font-size="7.5" fill="#2ecc71" font-family="monospace">正常</text>
+      <text x="85" y="42" font-size="7.5" fill="#f1c40f" text-anchor="middle" font-family="monospace">摆烂</text>
+      <text x="163" y="78" font-size="7.5" fill="#e74c3c" font-family="monospace">崩了</text>
+      <!-- 结果 -->
+      <rect x="50" y="120" width="100" height="22" fill="#21262d" rx="4"/>
+      <text x="100" y="135" font-size="10" fill="#e74c3c" text-anchor="middle" font-family="monospace">状态：已原地爆炸</text>
+      <text x="100" y="155" font-size="9" fill="#8b949e" text-anchor="middle" font-family="monospace">建议：背一个词压压惊</text>
+    </svg>`),
+
+    // 7. 学习计划 vs 执行情况 饼图
+    svg2url(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" style="background:#1a1a2e">
+      <text x="100" y="18" font-size="10" fill="#ecf0f1" text-anchor="middle" font-family="monospace">我的时间分配</text>
+      <!-- 饼图：圆心(100,85) 半径50 -->
+      <!-- 学习 5% -->
+      <path d="M100 85 L100 35 A50 50 0 0 1 109 35.2 Z" fill="#2ecc71"/>
+      <!-- 刷手机 70% -->
+      <path d="M100 85 L109 35.2 A50 50 0 1 1 72 120 Z" fill="#e74c3c"/>
+      <!-- 发呆 15% -->
+      <path d="M100 85 L72 120 A50 50 0 0 1 60 72 Z" fill="#f1c40f"/>
+      <!-- 睡觉 10% -->
+      <path d="M100 85 L60 72 A50 50 0 0 1 100 35 Z" fill="#3498db"/>
+      <!-- 图例 -->
+      <rect x="20" y="140" width="8" height="8" fill="#2ecc71"/>
+      <text x="31" y="148" font-size="7.5" fill="#ecf0f1" font-family="monospace">学习5%</text>
+      <rect x="72" y="140" width="8" height="8" fill="#e74c3c"/>
+      <text x="83" y="148" font-size="7.5" fill="#ecf0f1" font-family="monospace">手机70%</text>
+      <rect x="130" y="140" width="8" height="8" fill="#f1c40f"/>
+      <text x="141" y="148" font-size="7.5" fill="#ecf0f1" font-family="monospace">发呆15%</text>
+      <text x="100" y="160" font-size="8" fill="#95a5a6" text-anchor="middle" font-family="monospace">（学习计划：均匀分配）</text>
+    </svg>`),
+
+    // 8. 单词滚动条：记住 → 忘记
+    svg2url(`<svg xmlns="http://www.w3.org/2000/svg" width="200" height="160" style="background:#0f111a">
+      <text x="100" y="20" font-size="10" fill="#a78bfa" text-anchor="middle" font-family="monospace">单词记忆进度条</text>
+      <!-- abandon -->
+      <text x="18" y="40" font-size="9" fill="#e2e8f0" font-family="monospace">abandon</text>
+      <rect x="18" y="43" width="120" height="8" rx="4" fill="#1e293b"/>
+      <rect x="18" y="43" width="118" height="8" rx="4" fill="#22c55e"/>
+      <text x="142" y="51" font-size="8" fill="#22c55e" font-family="monospace">✓ 记住了!</text>
+      <!-- abolish -->
+      <text x="18" y="65" font-size="9" fill="#e2e8f0" font-family="monospace">abolish</text>
+      <rect x="18" y="68" width="120" height="8" rx="4" fill="#1e293b"/>
+      <rect x="18" y="68" width="80" height="8" rx="4" fill="#f59e0b"/>
+      <text x="142" y="76" font-size="8" fill="#f59e0b" font-family="monospace">模糊中</text>
+      <!-- abstract -->
+      <text x="18" y="90" font-size="9" fill="#e2e8f0" font-family="monospace">abstract</text>
+      <rect x="18" y="93" width="120" height="8" rx="4" fill="#1e293b"/>
+      <rect x="18" y="93" width="20" height="8" rx="4" fill="#ef4444"/>
+      <text x="142" y="101" font-size="8" fill="#ef4444" font-family="monospace">忘干净了</text>
+      <!-- abundant -->
+      <text x="18" y="115" font-size="9" fill="#94a3b8" font-family="monospace">abundant</text>
+      <rect x="18" y="118" width="120" height="8" rx="4" fill="#1e293b"/>
+      <text x="142" y="126" font-size="8" fill="#64748b" font-family="monospace">没见过?</text>
+      <!-- 箭头 -->
+      <text x="100" y="148" font-size="9.5" fill="#a78bfa" text-anchor="middle" font-family="monospace">↑ 真实背单词现场</text>
+      <text x="100" y="159" font-size="8.5" fill="#64748b" text-anchor="middle" font-family="monospace">以上 4 词均从A开始</text>
+    </svg>`),
+  ];
+})();
+
+// ====================================================
 // 0. 在线词典 API (Free Dictionary API - 无需 Key)
 // ====================================================
 const DICT_CACHE_KEY = 'kaoyan_dict_cache_v1';
@@ -928,8 +1186,35 @@ function showMascotBubble(text, duration = 2500) {
   const el = document.getElementById('mascot-bubble');
   el.textContent = text;
   el.classList.remove('hidden');
+  el.classList.remove('bubble-img-mode');
   clearTimeout(el._timer);
   el._timer = setTimeout(() => el.classList.add('hidden'), duration);
+}
+
+// 显示抽象内容气泡（文字 or 图片 meme，随机挑一个）
+function showAbstractBubble() {
+  const el = document.getElementById('mascot-bubble');
+  clearTimeout(el._timer);
+
+  // 随机决定显示文字还是图片（40% 图片，60% 文字）
+  const showImg = Math.random() < 0.4;
+  const pool = showImg ? ABSTRACT_MEMES : ABSTRACT_QUOTES;
+  const item = pool[Math.floor(Math.random() * pool.length)];
+
+  el.classList.remove('hidden');
+
+  if (showImg) {
+    el.classList.add('bubble-img-mode', 'loaded');
+    el.innerHTML = `<img src="${item}" alt="meme" class="meme-img">`;
+    el._timer = setTimeout(() => {
+      el.classList.add('hidden');
+      el.classList.remove('bubble-img-mode', 'loaded');
+    }, 5000);
+  } else {
+    el.classList.remove('bubble-img-mode', 'loaded');
+    el.textContent = item;
+    el._timer = setTimeout(() => el.classList.add('hidden'), 5000);
+  }
 }
 
 // ====================================================
@@ -1185,18 +1470,9 @@ function bindEvents() {
     }
   });
 
-  // 点击小人
+  // 点击小人 → 随机显示抽象语录或搞笑表情包
   document.getElementById('pixel-mascot').addEventListener('click', () => {
-    const messages = [
-      '📖 加油！每天进步一点点！',
-      '🔥 你的连续打卡好厉害！',
-      '💪 坚持就是胜利！',
-      '🌟 相信自己，考研必胜！',
-      '📚 积累词汇，稳步前进！',
-      '✨ 你比昨天更棒了！',
-    ];
-    const msg = messages[Math.floor(Math.random() * messages.length)];
-    showMascotBubble(msg, 3000);
+    showAbstractBubble();
     triggerMascotAnim('happy', 2000);
   });
 
