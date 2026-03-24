@@ -781,29 +781,66 @@ body {
   border-radius: 4px;
 }
 
-/* 发音按钮 */
+/* 发音按钮（有道 TTS，正面即可点击） */
 .audio-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  font-size: 1.1rem;
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
   background: var(--pixel-blue-dark);
   border: 2px solid var(--pixel-blue);
   border-radius: 6px;
   cursor: pointer;
-  margin-left: 10px;
+  margin-left: 8px;
   vertical-align: middle;
-  transition: transform 0.1s, background 0.1s;
+  transition: transform 0.1s, background 0.15s, box-shadow 0.15s;
   image-rendering: pixelated;
+  position: relative;
+  top: -1px;
 }
 .audio-btn:hover {
   background: var(--pixel-blue);
   transform: scale(1.15);
+  box-shadow: 0 0 8px var(--pixel-blue);
 }
 .audio-btn:active {
-  transform: scale(0.9);
+  transform: scale(0.88);
+}
+/* 播放中闪烁动效 */
+@keyframes audioPlaying {
+  0%,100% { box-shadow: 0 0 0px var(--pixel-blue); }
+  50%      { box-shadow: 0 0 12px var(--pixel-blue), 0 0 4px #fff; }
+}
+.audio-btn.audio-playing {
+  animation: audioPlaying 0.4s ease-in-out 3;
+  background: var(--pixel-blue);
+}
+
+/* 在线词库词数标签 */
+.vocab-source-tag {
+  display: inline-block;
+  font-size: 0.6rem;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--pixel-green-dark);
+  color: #fff;
+  vertical-align: middle;
+  margin-left: 4px;
+  font-family: var(--font-main);
+  letter-spacing: 0;
+}
+/* 加载中省略号动画 */
+@keyframes vocabLoadDots {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+.vocab-loading {
+  opacity: 0.5;
+  animation: vocabLoadDots 1.2s ease-in-out infinite;
+  font-size: 0.85em;
 }
 
 /* 同义词区域 */

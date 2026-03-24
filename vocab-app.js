@@ -263,8 +263,23 @@ const ABSTRACT_MEMES = (() => {
 })();
 
 // ====================================================
-// 0. 在线词典 API (Free Dictionary API - 无需 Key)
+// 0. 音频 & 在线词典
 // ====================================================
+
+/**
+ * 获取单词的真人读音 URL
+ * 优先级：有道词典 TTS（国内直连）→ Free Dictionary API（备用）
+ *
+ * 有道 TTS：
+ *   type=1  英式发音
+ *   type=2  美式发音
+ * 无需 API Key，直接拼接即可播放
+ */
+function getYoudaoAudioUrl(word, type = 2) {
+  // type=2 美式，type=1 英式
+  return `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=${type}`;
+}
+
 const DICT_CACHE_KEY = 'kaoyan_dict_cache_v1';
 const dictCache = (() => {
   try { return JSON.parse(localStorage.getItem(DICT_CACHE_KEY)) || {}; }
@@ -276,8 +291,8 @@ function saveDictCache() {
 }
 
 /**
- * 从 Free Dictionary API 查询单词详细信息
- * 返回: { phonetic, audioUrl, partOfSpeech, definition, example } 或 null
+ * 从 Free Dictionary API 查询补充数据（英文释义、例句、同义词）
+ * 音频已改用有道，此函数只取文字数据
  */
 async function fetchWordFromAPI(word) {
   if (dictCache[word]) return dictCache[word];
@@ -288,21 +303,16 @@ async function fetchWordFromAPI(word) {
     if (!Array.isArray(data) || !data[0]) return null;
 
     const entry = data[0];
-    // 音标
     const phonetic = entry.phonetic ||
       (entry.phonetics?.find(p => p.text)?.text) || '';
-    // 音频
-    const audioUrl = entry.phonetics?.find(p => p.audio)?.audio || '';
-    // 第一个词性和释义
     const meaning = entry.meanings?.[0];
     const partOfSpeech = meaning?.partOfSpeech || '';
     const defObj = meaning?.definitions?.[0];
     const definition = defObj?.definition || '';
     const example = defObj?.example || '';
-    // 同义词
     const synonyms = (meaning?.synonyms || []).slice(0, 4);
 
-    const result = { phonetic, audioUrl, partOfSpeech, definition, example, synonyms };
+    const result = { phonetic, partOfSpeech, definition, example, synonyms };
     dictCache[word] = result;
     saveDictCache();
     return result;
@@ -312,27 +322,72 @@ async function fetchWordFromAPI(word) {
 // 当前播放的音频对象
 let currentAudio = null;
 
-function playWordAudio(audioUrl) {
-  if (!audioUrl) return;
+/**
+ * 播放单词读音
+ * 优先有道 TTS，无网络或失败时静默忽略
+ */
+function playWordAudio(word, fallbackUrl) {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-  currentAudio = new Audio(audioUrl);
-  currentAudio.play().catch(() => {});
+  // 先尝试有道美式发音
+  const youdaoUrl = getYoudaoAudioUrl(word, 2);
+  const audio = new Audio(youdaoUrl);
+  audio.onerror = () => {
+    // 有道失败 → 尝试英式
+    const audio2 = new Audio(getYoudaoAudioUrl(word, 1));
+    audio2.onerror = () => {
+      // 最后备用 Free Dict URL
+      if (fallbackUrl) new Audio(fallbackUrl).play().catch(() => {});
+    };
+    audio2.play().catch(() => {});
+  };
+  audio.play().catch(() => {
+    if (fallbackUrl) new Audio(fallbackUrl).play().catch(() => {});
+  });
+  currentAudio = audio;
 }
 
-// 异步增强词卡：用 API 数据补充英文释义、例句、音频
+// ====================================================
+// 0b. 卡片正面音频按钮（有道 TTS，无需翻牌即可点击）
+// ====================================================
+
+/**
+ * 在单词卡正面注入🔊按钮（如已存在则更新绑定）
+ * 调用时机：showLearnCard / showReviewCard 渲染完成后
+ */
+function injectFrontAudioBtn(wordText, btnContainerId, btnId) {
+  const container = document.getElementById(btnContainerId);
+  if (!container) return;
+  let btn = document.getElementById(btnId);
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = btnId;
+    btn.className = 'audio-btn pixel-btn';
+    btn.title = '点击发音（有道·美式）';
+    btn.innerHTML = '🔊';
+    container.insertAdjacentElement('afterend', btn);
+  }
+  // 更新点击绑定
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    playWordAudio(wordText);
+    btn.classList.add('audio-playing');
+    setTimeout(() => btn.classList.remove('audio-playing'), 1200);
+  };
+}
+
+// 异步增强词卡背面：用 API 数据补充英文释义、例句、同义词
 async function enrichCardWithAPI(word) {
   if (!navigator.onLine) return;
   const apiData = await fetchWordFromAPI(word.word);
-  if (!apiData) return;
 
   // 补充音标（如果本地没有）
-  if (apiData.phonetic && !word.phonetic) {
+  if (apiData?.phonetic && !word.phonetic) {
     const el = document.getElementById('word-phonetic');
     if (el && !el.textContent) el.textContent = apiData.phonetic;
   }
 
-  // 添加英文释义区域（在中文释义下方）
-  if (apiData.definition) {
+  // 英文释义
+  if (apiData?.definition) {
     let enDefEl = document.getElementById('word-en-def');
     if (!enDefEl) {
       const defEl = document.getElementById('word-definition');
@@ -344,17 +399,12 @@ async function enrichCardWithAPI(word) {
       }
     }
     if (enDefEl) {
-      enDefEl.innerHTML = `<span class="api-badge">API</span> <em>${apiData.partOfSpeech}</em> ${apiData.definition}`;
+      enDefEl.innerHTML = `<span class="api-badge">EN</span> <em>${apiData.partOfSpeech}</em> ${apiData.definition}`;
     }
   }
 
-  // 补充英文例句（如果本地没有）
-  if (apiData.example) {
-    const exEl = document.getElementById('word-example');
-    if (exEl && !exEl.textContent.trim()) {
-      exEl.textContent = `"${apiData.example}"`;
-    }
-    // 添加 API 例句补充
+  // 英文例句
+  if (apiData?.example) {
     let apiExEl = document.getElementById('word-api-example');
     if (!apiExEl) {
       const exEl2 = document.getElementById('word-example');
@@ -365,32 +415,11 @@ async function enrichCardWithAPI(word) {
         exEl2.parentNode.insertBefore(apiExEl, exEl2.nextSibling);
       }
     }
-    if (apiExEl && apiData.example !== document.getElementById('word-example')?.textContent?.replace(/"/g, '')) {
-      apiExEl.textContent = `📚 "${apiData.example}"`;
-    }
+    if (apiExEl) apiExEl.textContent = `📚 "${apiData.example}"`;
   }
 
-  // 音频按钮
-  if (apiData.audioUrl) {
-    let audioBtn = document.getElementById('word-audio-btn');
-    if (!audioBtn) {
-      const termEl = document.getElementById('word-term');
-      if (termEl) {
-        audioBtn = document.createElement('button');
-        audioBtn.id = 'word-audio-btn';
-        audioBtn.className = 'audio-btn pixel-btn';
-        audioBtn.title = '点击发音';
-        audioBtn.innerHTML = '🔊';
-        termEl.insertAdjacentElement('afterend', audioBtn);
-      }
-    }
-    if (audioBtn) {
-      audioBtn.onclick = () => playWordAudio(apiData.audioUrl);
-    }
-  }
-
-  // 同义词标签
-  if (apiData.synonyms?.length > 0) {
+  // 同义词
+  if (apiData?.synonyms?.length > 0) {
     let synEl = document.getElementById('word-synonyms');
     if (!synEl) {
       const backEl = document.getElementById('card-back');
@@ -406,6 +435,53 @@ async function enrichCardWithAPI(word) {
         apiData.synonyms.map(s => `<span class="syn-tag">${s}</span>`).join('');
     }
   }
+}
+
+// ====================================================
+// 0c. 在线词库词数（动态拉取）
+// ====================================================
+const ONLINE_VOCAB_URL =
+  'https://raw.githubusercontent.com/kajweb/dict/master/README.md';
+
+// 备用：直接计算几个主流开源词库的固定词数
+const ONLINE_VOCAB_FALLBACK = {
+  '考研核心词汇': 2500,
+  '考研大纲词汇': 5500,
+};
+
+let onlineVocabCount = null; // null = 未加载，0 = 加载失败
+
+/**
+ * 尝试从 GitHub 开源词库 JSON 拉取总词条数
+ * 使用 kajweb/dict 仓库的考研词库（MIT License，公开可访问）
+ */
+async function fetchOnlineVocabCount() {
+  if (onlineVocabCount !== null) return onlineVocabCount;
+  try {
+    // kajweb/dict 包含多个词库 JSON，考研词汇为 kaoyan.json
+    const url = 'https://raw.githubusercontent.com/kajweb/dict/master/kaoyan.json';
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error('fetch failed');
+    const data = await res.json();
+    // 数据是数组，每项为一个词条
+    if (Array.isArray(data)) {
+      onlineVocabCount = data.length;
+      return onlineVocabCount;
+    }
+  } catch {}
+
+  // 备用：尝试另一个开源词库
+  try {
+    const url2 = 'https://raw.githubusercontent.com/mahavivo/english-wordlists/master/GRE5000.json';
+    const res2 = await fetch(url2, { signal: AbortSignal.timeout(6000) });
+    if (res2.ok) {
+      const d2 = await res2.json();
+      if (Array.isArray(d2)) { onlineVocabCount = d2.length; return onlineVocabCount; }
+    }
+  } catch {}
+
+  onlineVocabCount = 0; // 标记为失败，避免重复请求
+  return 0;
 }
 
 // ====================================================
@@ -704,10 +780,13 @@ function showLearnCard() {
   document.getElementById('reveal-btn').classList.remove('hidden');
 
   // 清理上一张卡片的 API 元素
-  ['word-en-def','word-api-example','word-audio-btn','word-synonyms'].forEach(id => {
+  ['word-en-def','word-api-example','word-front-audio-btn','word-synonyms'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.remove();
   });
+
+  // 在正面音标旁注入🔊按钮（有道 TTS，无需翻牌即可点击）
+  injectFrontAudioBtn(word.word, 'word-phonetic', 'word-front-audio-btn');
 
   // 卡片动画
   cardEl.style.animation = 'none';
@@ -896,6 +975,10 @@ function showReviewCard() {
   document.getElementById('rv-example').textContent = word.example ? `"${word.example}"` : '';
   document.getElementById('rv-card-back').classList.add('hidden');
   document.getElementById('rv-reveal-btn').classList.remove('hidden');
+
+  // 复习卡正面也注入🔊按钮
+  ['rv-front-audio-btn'].forEach(id => { const e = document.getElementById(id); if (e) e.remove(); });
+  injectFrontAudioBtn(word.word, 'rv-phonetic', 'rv-front-audio-btn');
 }
 
 function handleReviewAnswer(result) {
@@ -1019,6 +1102,10 @@ function renderStats() {
   const s = AppState.stats;
   const pool = getFilteredWords();
   const grid = document.getElementById('stats-grid');
+
+  // 词库总词数：先显示本地词数，异步替换为在线词数
+  const localCount = pool.length;
+
   grid.innerHTML = [
     { icon: '📖', val: s.totalLearned, label: '累计学习词数' },
     { icon: '🔥', val: s.streak, label: '连续打卡天数' },
@@ -1026,12 +1113,12 @@ function renderStats() {
     { icon: '🪙', val: s.coins, label: '词币数量' },
     { icon: '🔄', val: s.totalReviews, label: '累计复习次数' },
     { icon: '✅', val: s.totalReviews ? Math.round(s.correctReviews / s.totalReviews * 100) + '%' : '0%', label: '复习正确率' },
-    { icon: '📚', val: pool.length, label: '词库总词数' },
+    { icon: '📚', val: `<span id="online-vocab-count" title="本地${localCount}词，在线词库加载中…">${localCount}<span class="vocab-loading">…</span></span>`, label: '词库总词数', raw: true },
     { icon: '📅', val: Object.keys(AppState.progress.dailyLog).filter(k => AppState.progress.dailyLog[k].done).length, label: '总打卡天数' },
   ].map(item => `
     <div class="stat-card">
       <span class="stat-card-icon">${item.icon}</span>
-      <span class="stat-card-val">${item.val}</span>
+      <span class="stat-card-val">${item.raw ? item.val : item.val}</span>
       <div class="stat-card-label">${item.label}</div>
     </div>
   `).join('');
@@ -1049,6 +1136,19 @@ function renderStats() {
   document.getElementById('level-bar-fill').style.width = pct + '%';
   document.getElementById('level-text').textContent =
     `Lv.${lvl} ${currentLvl.name}  ${nextLvl ? `${xp} / ${nextLvl.minXp} XP → ${nextLvl.name}` : '满级！'}`;
+
+  // 异步拉取在线词库词数并更新
+  fetchOnlineVocabCount().then(count => {
+    const el = document.getElementById('online-vocab-count');
+    if (!el) return;
+    if (count > 0) {
+      el.innerHTML = `${count.toLocaleString()} <span class="vocab-source-tag">在线</span>`;
+      el.title = `在线考研词库共 ${count} 词（本地已载入 ${localCount} 词）`;
+    } else {
+      el.innerHTML = `${localCount} <span class="vocab-source-tag">本地</span>`;
+      el.title = `本地词库 ${localCount} 词（在线词库加载失败）`;
+    }
+  });
 }
 
 // ====================================================
