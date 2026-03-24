@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>考研英语词汇打卡 🎮</title>
+<link rel="stylesheet" href="vocab-style.css">
+</head>
+<body>
+
+<!-- ===== 顶部导航 ===== -->
+<header class="top-bar">
+  <div class="top-left">
+    <span class="pixel-logo">📖 词汇闯关</span>
+  </div>
+  <div class="top-stats">
+    <div class="stat-item fire" title="连续打卡天数">
+      <span class="stat-icon">🔥</span>
+      <span id="streak-count">0</span>
+    </div>
+    <div class="stat-item coin" title="词币">
+      <span class="stat-icon">🪙</span>
+      <span id="coin-count">0</span>
+    </div>
+    <div class="stat-item xp" title="经验值">
+      <span class="stat-icon">⭐</span>
+      <span id="xp-count">0</span>
+    </div>
+  </div>
+  <div class="top-right">
+    <span id="sync-status" class="sync-indicator" data-state="idle" title="云同步状态">☁️</span>
+    <span id="online-status" class="online-indicator" title="联网状态">
+      <span class="online-dot"></span><span id="online-label">在线</span>
+    </span>
+    <button class="pixel-btn sm" id="settings-btn" title="设置">⚙️</button>
+  </div>
+</header>
+
+<!-- ===== 主容器 ===== -->
+<div class="app-container">
+
+  <!-- ===== 侧边导航（桌面端） ===== -->
+  <nav class="side-nav" id="side-nav">
+    <button class="nav-item active" data-page="learn">
+      <span class="nav-icon">📚</span>
+      <span class="nav-label">今日学习</span>
+    </button>
+    <button class="nav-item" data-page="review">
+      <span class="nav-icon">🔄</span>
+      <span class="nav-label">复习</span>
+    </button>
+    <button class="nav-item" data-page="calendar">
+      <span class="nav-icon">📅</span>
+      <span class="nav-label">打卡日历</span>
+    </button>
+    <button class="nav-item" data-page="story">
+      <span class="nav-icon">📜</span>
+      <span class="nav-label">今日故事</span>
+    </button>
+    <button class="nav-item" data-page="stats">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">统计</span>
+    </button>
+  </nav>
+
+  <!-- ===== 页面内容区 ===== -->
+  <main class="page-content">
+
+    <!-- == 页面：今日学习 == -->
+    <section id="page-learn" class="page active">
+      <div class="page-header">
+        <h2 class="pixel-title">今日单词</h2>
+        <div class="progress-wrap">
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="learn-progress-bar"></div>
+          </div>
+          <span id="learn-progress-text">0 / 0</span>
+        </div>
+      </div>
+
+      <!-- 单词卡区域 -->
+      <div class="card-stage" id="card-stage">
+        <!-- 动态生成 -->
+        <div class="word-card" id="word-card">
+          <div class="card-front">
+            <div class="word-phonetic" id="word-phonetic"></div>
+            <div class="word-term" id="word-term"></div>
+            <div class="word-pos" id="word-pos"></div>
+            <button class="pixel-btn reveal-btn" id="reveal-btn">查看释义 👇</button>
+          </div>
+          <div class="card-back hidden" id="card-back">
+            <div class="word-definition" id="word-definition"></div>
+            <div class="word-example" id="word-example"></div>
+            <div class="answer-btns">
+              <button class="pixel-btn wrong-btn" id="wrong-btn">❌ 不认识</button>
+              <button class="pixel-btn hard-btn" id="hard-btn">😅 模糊</button>
+              <button class="pixel-btn correct-btn" id="correct-btn">✅ 认识！</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 完成今日学习 -->
+        <div class="complete-panel hidden" id="complete-panel">
+          <div class="complete-icon">🎉</div>
+          <h3 class="pixel-title">今日学习完成！</h3>
+          <p id="complete-summary"></p>
+          <div class="reward-display" id="reward-display"></div>
+          <button class="pixel-btn big" id="go-story-btn">📜 读今日故事</button>
+          <button class="pixel-btn big secondary" id="go-review-btn">🔄 开始复习</button>
+        </div>
+      </div>
+
+      <!-- 单词列表（当日） -->
+      <div class="word-list-wrap">
+        <h3 class="section-title">今日单词列表</h3>
+        <div class="word-list" id="word-list"></div>
+      </div>
+    </section>
+
+    <!-- == 页面：复习 == -->
+    <section id="page-review" class="page">
+      <div class="page-header">
+        <h2 class="pixel-title">🔄 复习时间</h2>
+        <p class="sub-text">基于艾宾浩斯遗忘曲线，精准复习</p>
+      </div>
+      <div class="review-info" id="review-info">
+        <!-- 动态填充 -->
+      </div>
+      <div class="card-stage" id="review-stage">
+        <div class="word-card" id="review-card">
+          <div class="card-front">
+            <div class="word-phonetic" id="rv-phonetic"></div>
+            <div class="word-term" id="rv-term"></div>
+            <div class="word-pos" id="rv-pos"></div>
+            <button class="pixel-btn reveal-btn" id="rv-reveal-btn">查看释义 👇</button>
+          </div>
+          <div class="card-back hidden" id="rv-card-back">
+            <div class="word-definition" id="rv-definition"></div>
+            <div class="word-example" id="rv-example"></div>
+            <div class="answer-btns">
+              <button class="pixel-btn wrong-btn" id="rv-wrong-btn">❌ 忘记了</button>
+              <button class="pixel-btn hard-btn" id="rv-hard-btn">😅 模糊</button>
+              <button class="pixel-btn correct-btn" id="rv-correct-btn">✅ 记住了</button>
+            </div>
+          </div>
+        </div>
+        <div class="complete-panel hidden" id="review-complete">
+          <div class="complete-icon">💪</div>
+          <h3 class="pixel-title">复习完成！</h3>
+          <p id="review-complete-text"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- == 页面：打卡日历 == -->
+    <section id="page-calendar" class="page">
+      <div class="page-header">
+        <h2 class="pixel-title">📅 打卡日历</h2>
+      </div>
+      <div class="calendar-nav">
+        <button class="pixel-btn sm" id="cal-prev">◀</button>
+        <span id="cal-month-label"></span>
+        <button class="pixel-btn sm" id="cal-next">▶</button>
+      </div>
+      <div class="calendar-grid" id="calendar-grid"></div>
+      <div class="monthly-stats" id="monthly-stats"></div>
+      <div class="monthly-plan" id="monthly-plan"></div>
+    </section>
+
+    <!-- == 页面：今日故事 == -->
+    <section id="page-story" class="page">
+      <div class="page-header">
+        <h2 class="pixel-title">📜 今日故事</h2>
+        <p class="sub-text">用今日单词编成的短文</p>
+      </div>
+      <div class="story-card" id="story-card">
+        <div class="story-text" id="story-text">加载中...</div>
+        <div class="story-words" id="story-words"></div>
+      </div>
+      <button class="pixel-btn" id="regen-story-btn">🎲 换一个故事</button>
+    </section>
+
+    <!-- == 页面：统计 == -->
+    <section id="page-stats" class="page">
+      <div class="page-header">
+        <h2 class="pixel-title">📊 我的数据</h2>
+      </div>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="level-bar-wrap">
+        <h3 class="section-title">等级进度</h3>
+        <div class="level-bar-track">
+          <div class="level-bar-fill" id="level-bar-fill"></div>
+        </div>
+        <div id="level-text"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== 像素小人（常驻右下角） ===== -->
+  <div class="pixel-mascot" id="pixel-mascot">
+    <canvas id="mascot-canvas" width="64" height="80"></canvas>
+    <div class="mascot-bubble hidden" id="mascot-bubble"></div>
+  </div>
+
+</div>
+
+<!-- ===== 底部导航（移动端） ===== -->
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="nav-item active" data-page="learn">
+    <span class="nav-icon">📚</span>
+    <span class="nav-label">学习</span>
+  </button>
+  <button class="nav-item" data-page="review">
+    <span class="nav-icon">🔄</span>
+    <span class="nav-label">复习</span>
+  </button>
+  <button class="nav-item" data-page="calendar">
+    <span class="nav-icon">📅</span>
+    <span class="nav-label">打卡</span>
+  </button>
+  <button class="nav-item" data-page="story">
+    <span class="nav-icon">📜</span>
+    <span class="nav-label">故事</span>
+  </button>
+  <button class="nav-item" data-page="stats">
+    <span class="nav-icon">📊</span>
+    <span class="nav-label">统计</span>
+  </button>
+</nav>
+
+<!-- ===== 设置弹窗 ===== -->
+<div class="modal-overlay hidden" id="settings-modal">
+  <div class="modal pixel-modal">
+    <h3 class="pixel-title">⚙️ 设置</h3>
+    <div class="setting-row">
+      <label>每日学习词数</label>
+      <input type="number" id="daily-count" min="5" max="50" value="10" class="pixel-input">
+    </div>
+    <div class="setting-row">
+      <label>词汇难度范围</label>
+      <select id="level-filter" class="pixel-input">
+        <option value="all">全部（1-4级）</option>
+        <option value="1-2">基础（1-2级）</option>
+        <option value="2-3">核心（2-3级）</option>
+        <option value="3-4">高阶（3-4级）</option>
+      </select>
+    </div>
+    <div class="setting-row">
+      <label>音标显示</label>
+      <input type="checkbox" id="show-phonetic" checked class="pixel-checkbox">
+    </div>
+    <div class="setting-row">
+      <label>学习提醒</label>
+      <input type="checkbox" id="enable-notify" class="pixel-checkbox">
+    </div>
+
+    <!-- ===== GitHub Gist 同步区域 ===== -->
+    <div class="setting-section-title">☁️ 多设备同步（GitHub Gist）</div>
+    <div class="setting-row gist-row" id="gist-configured-row" style="display:none">
+      <div class="gist-user-info">
+        <span class="gist-avatar" id="gist-avatar">👤</span>
+        <span id="gist-username" class="gist-username">已登录</span>
+        <button class="pixel-btn danger sm" id="gist-logout-btn">断开</button>
+      </div>
+      <button class="pixel-btn sm" id="gist-sync-btn">☁️ 立即同步</button>
+    </div>
+    <div id="gist-setup-row">
+      <div class="setting-row">
+        <label>GitHub Token</label>
+        <input type="password" id="gist-token-input" class="pixel-input gist-token-input"
+               placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
+      </div>
+      <div class="gist-help">
+        需要 <strong>gist</strong> 权限的 Token。
+        <a href="https://github.com/settings/tokens/new?scopes=gist&description=kaoyan-vocab-sync"
+           target="_blank" class="gist-link">点此一键创建 →</a>
+      </div>
+      <button class="pixel-btn sm" id="gist-connect-btn">🔗 连接 GitHub</button>
+    </div>
+
+    <div class="setting-row">
+      <label>⚠️ 重置所有数据</label>
+      <button class="pixel-btn danger sm" id="reset-btn">重置</button>
+    </div>
+    <button class="pixel-btn" id="save-settings-btn">💾 保存</button>
+    <button class="pixel-btn secondary sm" id="close-settings-btn">关闭</button>
+  </div>
+</div>
+
+<!-- ===== Toast 提示 ===== -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ===== 脚本 ===== -->
+<script src="words_kaoyan.js"></script>
+<script src="sync-gist.js"></script>
+<script src="vocab-app.js"></script>
+</body>
+</html>
