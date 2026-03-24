@@ -469,7 +469,10 @@ body {
   padding: 3px 8px;
   font-size: .75rem;
   color: var(--pixel-yellow);
+  cursor: pointer;
+  transition: background .1s;
 }
+.story-tag:hover { background: rgba(251,191,36,.3); }
 
 /* ===== 统计页 ===== */
 .stats-grid {
@@ -952,3 +955,205 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
+
+/* ===================================================
+   新增：今日单词网格（彩色色块，自由跳转）
+   =================================================== */
+.word-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.word-grid-chip {
+  background: var(--bg-card);
+  border: 2px solid var(--border-pixel);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .1s;
+  min-width: 80px;
+  text-align: center;
+}
+.word-grid-chip:hover {
+  border-color: var(--pixel-blue);
+  transform: translateY(-1px);
+}
+.word-grid-chip:active { transform: translateY(0); }
+
+/* 认识 → 绿 */
+.word-grid-chip.wg-correct {
+  background: rgba(74,222,128,.15);
+  border-color: var(--pixel-green);
+}
+/* 不认识 → 红 */
+.word-grid-chip.wg-wrong {
+  background: rgba(248,113,113,.15);
+  border-color: var(--pixel-red);
+}
+/* 模糊 → 黄 */
+.word-grid-chip.wg-hard {
+  background: rgba(251,191,36,.15);
+  border-color: var(--pixel-yellow);
+}
+/* 当前词 → 蓝高亮 */
+.word-grid-chip.wg-current {
+  background: rgba(96,165,250,.2);
+  border-color: var(--pixel-blue);
+  box-shadow: 0 0 8px rgba(96,165,250,.4);
+}
+.wgc-word {
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text-main);
+  display: block;
+}
+
+/* ===================================================
+   新增：故事词义弹出卡片（换一个故事按钮下方）
+   =================================================== */
+.story-word-link {
+  cursor: pointer;
+  text-decoration: underline dotted;
+  transition: background .1s, color .1s;
+}
+.story-word-link:hover {
+  background: rgba(251,191,36,.25);
+  color: var(--pixel-yellow);
+  border-radius: 3px;
+}
+
+.story-word-card {
+  background: var(--bg-card);
+  border: 2px solid var(--pixel-blue);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 16px;
+  box-shadow: 4px 4px 0 #000;
+  animation: fadeInUp .2s ease;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.swc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.swc-term {
+  font-family: var(--font-pixel);
+  font-size: .9rem;
+  color: var(--pixel-yellow);
+  flex: 1;
+}
+.swc-audio-btn {
+  background: var(--pixel-blue-dark);
+  border: 2px solid var(--pixel-blue);
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: .9rem;
+  transition: background .1s, transform .1s;
+}
+.swc-audio-btn:hover { background: var(--pixel-blue); transform: scale(1.1); }
+.swc-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color .15s;
+}
+.swc-close:hover { color: var(--pixel-red); }
+.swc-phonetic {
+  font-size: .8rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.swc-def {
+  font-size: .9rem;
+  color: var(--text-main);
+  line-height: 1.6;
+  margin-bottom: 12px;
+  padding: 8px;
+  background: var(--bg-card2);
+  border-radius: 6px;
+}
+.swc-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.swc-actions .pixel-btn.sm {
+  flex: 1;
+  min-width: 80px;
+  font-size: .7rem;
+  padding: 8px 6px;
+}
+.swc-hint {
+  margin-top: 10px;
+  font-size: .78rem;
+  color: var(--text-muted);
+  text-align: center;
+  min-height: 1.2em;
+}
+
+/* ===================================================
+   新增：日历词汇详情弹窗
+   =================================================== */
+.cal-day-detail {
+  background: var(--bg-card);
+  border: 2px solid var(--pixel-purple);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 20px;
+  box-shadow: 4px 4px 0 #000;
+  animation: fadeInUp .2s ease;
+}
+.cdd-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  border-bottom: 2px dashed var(--border-pixel);
+  padding-bottom: 10px;
+}
+.cdd-date {
+  font-family: var(--font-pixel);
+  font-size: .7rem;
+  color: var(--pixel-purple);
+  flex: 1;
+}
+.cdd-count {
+  font-size: .8rem;
+  color: var(--text-muted);
+}
+.cdd-word-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* ===================================================
+   进度文本（去掉进度条后居中显示）
+   =================================================== */
+.progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#learn-progress-text {
+  font-family: var(--font-pixel);
+  font-size: .65rem;
+  color: var(--pixel-yellow);
+}
+

@@ -154,14 +154,14 @@ const GistSync = (() => {
   }
 
   // ── 推送进度到 Gist ───────────────────────────
-  async function push() {
+  async function push(silent = false) {
     if (_syncing) return;
     if (!getToken()) return;
     if (!navigator.onLine) return;
 
     _syncing = true;
-    setGistBtnState(true);
-    setSyncStatus('syncing', '上传中…');
+    if (!silent) setGistBtnState(true);
+    if (!silent) setSyncStatus('syncing', '上传中…');
 
     try {
       // 拿到当前 AppState（由外部注入）
@@ -185,15 +185,15 @@ const GistSync = (() => {
       }
 
       setLastSyncTs();
-      setSyncStatus('ok', lastSyncLabel());
+      if (!silent) setSyncStatus('ok', lastSyncLabel());
       return true;
     } catch (e) {
       console.warn('[GistSync] push error', e);
-      setSyncStatus('error', e.message.slice(0, 30));
+      if (!silent) setSyncStatus('error', e.message.slice(0, 30));
       return false;
     } finally {
       _syncing = false;
-      setGistBtnState(false);
+      if (!silent) setGistBtnState(false);
     }
   }
 

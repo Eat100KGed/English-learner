@@ -665,11 +665,14 @@ function renderStory(wordIndices) {
   const words = wordIndices.map(i => pool[i]).filter(Boolean);
   let text = generateStory(wordIndices);
 
-  // 高亮单词
+  // 高亮单词（可点击，携带词库索引）
   words.forEach(w => {
     if (!w) return;
     const re = new RegExp(`\\b(${w.word})\\b`, 'gi');
-    text = text.replace(re, `<span class="highlight" title="${w.definition}">$1</span>`);
+    text = text.replace(re, (match) => {
+      const idx = pool.indexOf(w);
+      return `<span class="highlight story-word-link" data-word="${w.word}" data-idx="${idx}" title="点击查看释义">${match}</span>`;
+    });
   });
 
   document.getElementById('story-text').innerHTML = text;
@@ -677,8 +680,84 @@ function renderStory(wordIndices) {
   // 渲染单词标签
   const tagsEl = document.getElementById('story-words');
   tagsEl.innerHTML = words.map(w =>
-    `<span class="story-tag">${w?.word || ''}</span>`
+    `<span class="story-tag story-word-link" data-word="${w?.word || ''}" data-idx="${pool.indexOf(w)}">${w?.word || ''}</span>`
   ).join('');
+
+  // 绑定点击事件（故事文本和标签区域）
+  document.querySelectorAll('.story-word-link').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wordText = el.dataset.word;
+      const idx = parseInt(el.dataset.idx);
+      showStoryWordCard(wordText, idx);
+    });
+  });
+}
+
+// ====================================================
+// 6b. 故事页词义卡片
+// ====================================================
+let storyWordCardIdx = null; // 当前弹出的词库索引
+
+function showStoryWordCard(wordText, idx) {
+  const pool = getFilteredWords();
+  const word = pool[idx] || KAOYAN_WORDS.find(w => w.word.toLowerCase() === wordText.toLowerCase());
+  if (!word) return;
+
+  storyWordCardIdx = idx;
+
+  const card = document.getElementById('story-word-card');
+  document.getElementById('swc-term').textContent = word.word;
+  document.getElementById('swc-phonetic').textContent = word.phonetic || '';
+  document.getElementById('swc-def').textContent = word.definition || '';
+
+  // 显示当前该词的学习状态提示
+  const result = learnState.results[idx];
+  const hint = result === 'correct' ? '✅ 今日已标记：认识'
+             : result === 'hard'    ? '😅 今日已标记：模糊'
+             : result === 'wrong'   ? '❌ 今日已标记：不认识'
+             : '';
+  document.getElementById('swc-hint').textContent = hint;
+
+  card.classList.remove('hidden');
+
+  // 绑定音频按钮
+  document.getElementById('swc-audio-btn').onclick = () => playWordAudio(word.word);
+}
+
+function hideStoryWordCard() {
+  document.getElementById('story-word-card').classList.add('hidden');
+  storyWordCardIdx = null;
+}
+
+function handleStoryWordAnswer(result) {
+  if (storyWordCardIdx === null) return;
+  const idx = storyWordCardIdx;
+
+  // 如果这个词在今日学习队列里，更新 learnState.results
+  if (learnState.queue.includes(idx)) {
+    learnState.results[idx] = result;
+    renderWordList();
+    // 同步上传
+    saveAndPush();
+  }
+
+  // 更新 SM-2
+  const q = result === 'correct' ? 5 : result === 'hard' ? 3 : 1;
+  sm2Update(idx, q);
+
+  // 更新 hint 文字
+  const hint = result === 'correct' ? '✅ 已标记：认识'
+             : result === 'hard'    ? '😅 已标记：模糊'
+             : '❌ 已标记：不认识';
+  document.getElementById('swc-hint').textContent = hint;
+
+  const colors = { correct: 'var(--pixel-green)', hard: 'var(--pixel-yellow)', wrong: 'var(--pixel-red)' };
+  const card = document.getElementById('story-word-card');
+  card.style.borderColor = colors[result] || '';
+  setTimeout(() => { card.style.borderColor = ''; }, 800);
+
+  showToast(result === 'correct' ? '✅ 已标记认识！' : result === 'hard' ? '😅 继续加油！' : '❌ 已加入复习列表！', 'success', 1500);
 }
 
 // ====================================================
@@ -758,9 +837,7 @@ function showLearnCard() {
 
 function updateLearnProgress() {
   const total = learnState.queue.length;
-  const done = learnState.current;
-  const pct = total ? (done / total * 100) : 0;
-  document.getElementById('learn-progress-bar').style.width = pct + '%';
+  const done = Object.keys(learnState.results).length;
   document.getElementById('learn-progress-text').textContent = `${done} / ${total}`;
 }
 
@@ -788,6 +865,7 @@ function completeLearnSession() {
   // 打卡记录
   log.learned = learnState.queue;
   log.done = true;
+  log.wordResults = { ...learnState.results }; // 记录每词的学习结果
   AppState.progress.currentDayDone = true;
 
   // 连续打卡
@@ -805,7 +883,9 @@ function completeLearnSession() {
   saveData();
   updateTopBar();
   launchConfetti();
-  showMascotBubble('🎉 太棒了！今日打卡完成！', 4000);
+  // 像素小人专属完成文本框
+  showMascotBubble('🐂🍺 又学了一天！', 5000);
+  triggerMascotAnim('happy', 5000);
 
   // 摘要
   document.getElementById('complete-summary').textContent =
@@ -823,6 +903,9 @@ function handleAnswer(result) {
   const idx = learnState.queue[learnState.current];
   learnState.results[idx] = result;
 
+  // 立即刷新词块颜色
+  renderWordList();
+
   // 卡片动画反馈
   const card = document.getElementById('word-card');
   if (result === 'correct') {
@@ -838,6 +921,9 @@ function handleAnswer(result) {
     showMascotBubble('🤔 再巩固一下！', 1200);
   }
 
+  // 每完成一词立即推送到 Gist
+  saveAndPush();
+
   setTimeout(() => {
     card.style.borderColor = '';
     card.classList.remove('anim-bounce', 'anim-shake');
@@ -846,26 +932,43 @@ function handleAnswer(result) {
   }, 400);
 }
 
+/**
+ * 保存本地并静默推送 Gist（单词完成时调用）
+ */
+function saveAndPush() {
+  saveData();
+  if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
+    // 静默推送，不显示 toast
+    GistSync.push(true).catch(() => {});
+  }
+}
+
 function renderWordList() {
   const pool = getFilteredWords();
   const listEl = document.getElementById('word-list');
+  const current = learnState.current;
   listEl.innerHTML = learnState.queue.map((idx, i) => {
     const w = pool[idx];
     if (!w) return '';
     const r = learnState.results[idx];
-    const statusClass = r === 'correct' ? 'learned' : r === 'wrong' ? 'skipped' : '';
-    const icon = r === 'correct' ? '✅' : r === 'wrong' ? '❌' : r === 'hard' ? '😅' : (i < learnState.current ? '•' : '');
-    return `<div class="word-chip ${statusClass}" onclick="jumpToWord(${i})">
-      <span class="chip-status">${icon}</span>
-      <div><div class="chip-term">${w.word}</div><div class="chip-def">${w.definition?.slice(0,20) || ''}...</div></div>
+    // 颜色：认识=绿，不认识=红，模糊=黄，当前=蓝，未到=默认
+    let colorClass = '';
+    if (r === 'correct')     colorClass = 'wg-correct';
+    else if (r === 'wrong')  colorClass = 'wg-wrong';
+    else if (r === 'hard')   colorClass = 'wg-hard';
+    else if (i === current)  colorClass = 'wg-current';
+    return `<div class="word-grid-chip ${colorClass}" onclick="jumpToWord(${i})" title="${w.definition?.slice(0,40) || ''}">
+      <span class="wgc-word">${w.word}</span>
     </div>`;
   }).join('');
 }
 
 function jumpToWord(idx) {
-  if (idx < learnState.current) return; // 已学词不跳转
+  // 任意跳转（不再限制已学词）
   learnState.current = idx;
   showLearnCard();
+  // 滚动回卡片区域
+  document.getElementById('card-stage')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ====================================================
@@ -995,7 +1098,9 @@ function renderCalendar() {
     if (isChecked) cls += ' checked';
     else if (isPast) cls += ' missed';
 
-    html += `<div class="${cls}" title="${dateStr}">${d}</div>`;
+    // 有打卡记录的日期可点击展示词汇
+    const clickable = isChecked ? `onclick="showCalDayDetail('${dateStr}')" style="cursor:pointer"` : '';
+    html += `<div class="${cls}" title="${dateStr}" ${clickable}>${d}</div>`;
   }
 
   grid.innerHTML = html;
@@ -1013,6 +1118,34 @@ function renderCalendar() {
 
   // 月度计划
   renderMonthlyPlan(year, month, daysInMonth, checkedCount);
+}
+
+function showCalDayDetail(dateStr) {
+  const log = AppState.progress.dailyLog[dateStr];
+  if (!log || !log.done) return;
+
+  const pool = getFilteredWords();
+  const indices = log.wordIndices || log.learned || [];
+  const results = log.wordResults || {}; // 如果有保存逐词结果
+
+  document.getElementById('cdd-date').textContent = dateStr;
+  document.getElementById('cdd-count').textContent = `共 ${indices.length} 词`;
+
+  const gridEl = document.getElementById('cdd-word-grid');
+  gridEl.innerHTML = indices.map(idx => {
+    const w = pool[idx];
+    if (!w) return '';
+    const r = results[idx];
+    let colorClass = '';
+    if (r === 'correct')    colorClass = 'wg-correct';
+    else if (r === 'wrong') colorClass = 'wg-wrong';
+    else if (r === 'hard')  colorClass = 'wg-hard';
+    return `<div class="word-grid-chip ${colorClass}" title="${w.definition?.slice(0,50) || ''}">
+      <span class="wgc-word">${w.word}</span>
+    </div>`;
+  }).join('') || '<div style="color:#aaa;padding:8px">暂无词汇记录</div>';
+
+  document.getElementById('cal-day-detail').classList.remove('hidden');
 }
 
 function renderMonthlyPlan(year, month, daysInMonth, checkedCount) {
@@ -1457,8 +1590,21 @@ function bindEvents() {
     const log = AppState.progress.dailyLog[t];
     const indices = log?.wordIndices || AppState.progress.currentDayWords || [];
     renderStory(indices);
+    hideStoryWordCard();
     showToast('🎲 已生成新故事！');
     triggerMascotAnim('happy', 2000);
+  });
+
+  // 故事词义卡片关闭
+  document.getElementById('swc-close').addEventListener('click', hideStoryWordCard);
+  // 故事词义卡片三选项
+  document.getElementById('swc-wrong').addEventListener('click', () => handleStoryWordAnswer('wrong'));
+  document.getElementById('swc-hard').addEventListener('click', () => handleStoryWordAnswer('hard'));
+  document.getElementById('swc-correct').addEventListener('click', () => handleStoryWordAnswer('correct'));
+
+  // 日历词汇详情弹窗关闭
+  document.getElementById('cdd-close').addEventListener('click', () => {
+    document.getElementById('cal-day-detail').classList.add('hidden');
   });
 
   // 设置
