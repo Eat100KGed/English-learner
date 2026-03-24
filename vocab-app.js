@@ -438,51 +438,10 @@ async function enrichCardWithAPI(word) {
 }
 
 // ====================================================
-// 0c. 在线词库词数（动态拉取）
+// 0c. 词库来源说明（已内嵌5045词，无需动态拉取）
 // ====================================================
-const ONLINE_VOCAB_URL =
-  'https://raw.githubusercontent.com/kajweb/dict/master/README.md';
-
-// 备用：直接计算几个主流开源词库的固定词数
-const ONLINE_VOCAB_FALLBACK = {
-  '考研核心词汇': 2500,
-  '考研大纲词汇': 5500,
-};
-
-let onlineVocabCount = null; // null = 未加载，0 = 加载失败
-
-/**
- * 尝试从 GitHub 开源词库 JSON 拉取总词条数
- * 使用 kajweb/dict 仓库的考研词库（MIT License，公开可访问）
- */
-async function fetchOnlineVocabCount() {
-  if (onlineVocabCount !== null) return onlineVocabCount;
-  try {
-    // kajweb/dict 包含多个词库 JSON，考研词汇为 kaoyan.json
-    const url = 'https://raw.githubusercontent.com/kajweb/dict/master/kaoyan.json';
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) throw new Error('fetch failed');
-    const data = await res.json();
-    // 数据是数组，每项为一个词条
-    if (Array.isArray(data)) {
-      onlineVocabCount = data.length;
-      return onlineVocabCount;
-    }
-  } catch {}
-
-  // 备用：尝试另一个开源词库
-  try {
-    const url2 = 'https://raw.githubusercontent.com/mahavivo/english-wordlists/master/GRE5000.json';
-    const res2 = await fetch(url2, { signal: AbortSignal.timeout(6000) });
-    if (res2.ok) {
-      const d2 = await res2.json();
-      if (Array.isArray(d2)) { onlineVocabCount = d2.length; return onlineVocabCount; }
-    }
-  } catch {}
-
-  onlineVocabCount = 0; // 标记为失败，避免重复请求
-  return 0;
-}
+// 词库已内嵌：有道背单词 KaoYan_1 / KaoYan_2 / KaoYan_3 合并，共 5045 词
+// level: 1=基础高频(前20%), 2=核心词汇(前50%), 3=考研必备(前80%), 4=拓展提升
 
 // ====================================================
 // 1. 数据存储 (localStorage)
@@ -1101,10 +1060,14 @@ function checkLevelUp() {
 function renderStats() {
   const s = AppState.stats;
   const pool = getFilteredWords();
+  const totalWords = KAOYAN_WORDS.length; // 完整词库大小（不受level过滤影响）
+  const filteredCount = pool.length;      // 当前筛选后的词库大小
   const grid = document.getElementById('stats-grid');
 
-  // 词库总词数：先显示本地词数，异步替换为在线词数
-  const localCount = pool.length;
+  // 词库总词数：显示完整词库大小，当前筛选的词数用 tooltip 展示
+  const vocabDisplay = filteredCount < totalWords
+    ? `<span title="当前筛选级别：${filteredCount} 词 / 完整词库：${totalWords} 词">${filteredCount.toLocaleString()} <span class="vocab-source-tag">已筛</span></span>`
+    : `${totalWords.toLocaleString()} <span class="vocab-source-tag">完整版</span>`;
 
   grid.innerHTML = [
     { icon: '📖', val: s.totalLearned, label: '累计学习词数' },
@@ -1113,12 +1076,12 @@ function renderStats() {
     { icon: '🪙', val: s.coins, label: '词币数量' },
     { icon: '🔄', val: s.totalReviews, label: '累计复习次数' },
     { icon: '✅', val: s.totalReviews ? Math.round(s.correctReviews / s.totalReviews * 100) + '%' : '0%', label: '复习正确率' },
-    { icon: '📚', val: `<span id="online-vocab-count" title="本地${localCount}词，在线词库加载中…">${localCount}<span class="vocab-loading">…</span></span>`, label: '词库总词数', raw: true },
+    { icon: '📚', val: vocabDisplay, label: '词库总词数', raw: true },
     { icon: '📅', val: Object.keys(AppState.progress.dailyLog).filter(k => AppState.progress.dailyLog[k].done).length, label: '总打卡天数' },
   ].map(item => `
     <div class="stat-card">
       <span class="stat-card-icon">${item.icon}</span>
-      <span class="stat-card-val">${item.raw ? item.val : item.val}</span>
+      <span class="stat-card-val">${item.val}</span>
       <div class="stat-card-label">${item.label}</div>
     </div>
   `).join('');
@@ -1136,19 +1099,6 @@ function renderStats() {
   document.getElementById('level-bar-fill').style.width = pct + '%';
   document.getElementById('level-text').textContent =
     `Lv.${lvl} ${currentLvl.name}  ${nextLvl ? `${xp} / ${nextLvl.minXp} XP → ${nextLvl.name}` : '满级！'}`;
-
-  // 异步拉取在线词库词数并更新
-  fetchOnlineVocabCount().then(count => {
-    const el = document.getElementById('online-vocab-count');
-    if (!el) return;
-    if (count > 0) {
-      el.innerHTML = `${count.toLocaleString()} <span class="vocab-source-tag">在线</span>`;
-      el.title = `在线考研词库共 ${count} 词（本地已载入 ${localCount} 词）`;
-    } else {
-      el.innerHTML = `${localCount} <span class="vocab-source-tag">本地</span>`;
-      el.title = `本地词库 ${localCount} 词（在线词库加载失败）`;
-    }
-  });
 }
 
 // ====================================================

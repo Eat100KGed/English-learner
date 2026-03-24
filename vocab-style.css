@@ -818,10 +818,10 @@ body {
   background: var(--pixel-blue);
 }
 
-/* 在线词库词数标签 */
+/* 词库来源标签（完整版 / 已筛） */
 .vocab-source-tag {
   display: inline-block;
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   padding: 1px 5px;
   border-radius: 3px;
   background: var(--pixel-green-dark);
@@ -830,17 +830,6 @@ body {
   margin-left: 4px;
   font-family: var(--font-main);
   letter-spacing: 0;
-}
-/* 加载中省略号动画 */
-@keyframes vocabLoadDots {
-  0%   { opacity: 1; }
-  50%  { opacity: 0.3; }
-  100% { opacity: 1; }
-}
-.vocab-loading {
-  opacity: 0.5;
-  animation: vocabLoadDots 1.2s ease-in-out infinite;
-  font-size: 0.85em;
 }
 
 /* 同义词区域 */
