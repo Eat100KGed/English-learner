@@ -1,5 +1,5 @@
 /* =============================================
-   考研词汇打卡 - 像素卡通风格 CSS
+   iNEnglish 词汇打卡 - 像素卡通风格 CSS
    ============================================= */
 
 /* 像素字体 */
@@ -1289,3 +1289,262 @@ body {
   letter-spacing: .03em;
 }
 
+/* ===================================================
+   词库等级选择弹窗
+   =================================================== */
+.level-select-modal {
+  max-width: 480px !important;
+  padding: 28px 24px !important;
+}
+.modal-sub {
+  font-size: .82rem;
+  color: var(--text-muted);
+  margin: -10px 0 18px;
+}
+.level-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.level-card {
+  background: var(--bg-dark);
+  border: 2px solid var(--border-pixel);
+  border-radius: 10px;
+  padding: 14px 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  transition: border-color .2s, background .2s, transform .15s;
+  font-family: var(--font-main);
+}
+.level-card:hover {
+  border-color: var(--pixel-blue);
+  background: var(--bg-card2);
+  transform: translateY(-2px);
+}
+.level-card.selected {
+  border-color: var(--pixel-green);
+  background: rgba(74,222,128,.08);
+}
+.lc-icon { font-size: 1.6rem; }
+.lc-name { font-size: .88rem; font-weight: 700; color: var(--text-main); }
+.lc-desc { font-size: .7rem; color: var(--text-muted); text-align: center; }
+
+/* 统计页词库显示 */
+.vocab-switch-wrap {
+  background: var(--bg-card);
+  border: 2px solid var(--border-pixel);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+.vocab-level-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  margin: 8px 0 12px;
+}
+.vocab-level-current .lc-icon { font-size: 1.3rem; }
+.lc-desc-inline {
+  font-size: .78rem;
+  color: var(--text-muted);
+}
+
+/* ===================================================
+   故事页：来源标签 & Loading
+   =================================================== */
+.story-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  min-height: 22px;
+}
+.story-source-tag {
+  font-size: .72rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+.story-source-tag.ai {
+  background: rgba(167,139,250,.15);
+  color: var(--pixel-purple);
+  border: 1px solid var(--pixel-purple);
+}
+.story-source-tag.local {
+  background: rgba(96,165,250,.12);
+  color: var(--pixel-blue);
+  border: 1px solid var(--pixel-blue);
+}
+.story-loading {
+  color: var(--text-muted);
+  font-style: italic;
+  animation: pulse-text 1.2s ease-in-out infinite;
+}
+@keyframes pulse-text {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .4; }
+}
+
+/* ===================================================
+   设置弹窗：AI配置帮助文字
+   =================================================== */
+.ai-story-help {
+  font-size: .75rem;
+  color: var(--text-muted);
+  padding: 4px 0 6px;
+  line-height: 1.5;
+}
+/* 设置弹窗内 input 加宽 */
+.pixel-modal .pixel-input.gist-token-input,
+.pixel-modal #ai-api-key,
+.pixel-modal #ai-endpoint,
+.pixel-modal #ai-model {
+  width: 170px;
+}
+
+@media (max-width: 500px) {
+  .level-cards { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ===================================================
+   例句阅读页面样式
+   =================================================== */
+
+/* 加载 / 空状态 */
+.reading-loading,
+.reading-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: .9rem;
+  padding: 40px 20px;
+  font-style: italic;
+}
+
+/* 例句列表容器 */
+.reading-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 16px;
+}
+
+/* 单条例句卡片 */
+.reading-card {
+  background: var(--bg-card);
+  border: 2px solid var(--border-pixel);
+  border-radius: 10px;
+  padding: 16px 18px;
+  transition: border-color .15s, box-shadow .15s;
+  position: relative;
+}
+.reading-card:hover {
+  border-color: var(--pixel-blue);
+  box-shadow: 3px 3px 0 #000;
+}
+
+/* 学习结果着色（对应今日词汇结果） */
+.reading-card.rc-correct { border-color: var(--pixel-green); background: rgba(74,222,128,.06); }
+.reading-card.rc-hard    { border-color: var(--pixel-yellow); background: rgba(251,191,36,.06); }
+.reading-card.rc-wrong   { border-color: var(--pixel-red); background: rgba(248,113,113,.06); }
+
+/* 卡片顶部：词 + 音标 + 词性 + 发音 */
+.rc-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.rc-word {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--pixel-yellow);
+  cursor: pointer;
+  text-decoration: underline dotted;
+  letter-spacing: .02em;
+  transition: color .1s;
+}
+.rc-word:hover { color: #fff; }
+.rc-phonetic {
+  font-size: .82rem;
+  color: var(--pixel-blue);
+  font-style: italic;
+}
+.rc-pos {
+  font-family: var(--font-pixel);
+  font-size: .4rem;
+  color: var(--pixel-purple);
+  background: rgba(167,139,250,.15);
+  border: 1px solid var(--pixel-purple);
+  border-radius: 3px;
+  padding: 2px 6px;
+}
+.rc-audio-btn {
+  margin-left: auto;
+  background: var(--pixel-blue-dark);
+  border: 2px solid var(--pixel-blue);
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  padding: 3px 8px;
+  font-size: .85rem;
+  transition: background .1s, transform .1s;
+  flex-shrink: 0;
+}
+.rc-audio-btn:hover { background: var(--pixel-blue); transform: scale(1.1); }
+
+/* 中文释义 */
+.rc-def {
+  font-size: .92rem;
+  color: var(--pixel-green);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+/* 例句 */
+.rc-example {
+  font-size: .9rem;
+  color: var(--text-main);
+  line-height: 1.8;
+  padding: 8px 12px;
+  background: rgba(255,255,255,.04);
+  border-left: 3px solid var(--pixel-blue);
+  border-radius: 0 6px 6px 0;
+}
+
+/* 例句中高亮目标词 */
+.rc-highlight {
+  color: var(--pixel-yellow) !important;
+  font-weight: 700;
+  background: rgba(251,191,36,.15);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+
+/* 无例句提示 */
+.rc-no-example {
+  font-size: .78rem;
+  color: #4b5563;
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* 例句中未收录词（可点击但颜色稍淡） */
+.rc-word-link {
+  cursor: pointer;
+}
+.rc-word-link:hover {
+  background: rgba(96,165,250,.12);
+  border-radius: 2px;
+}
+
+@media (max-width: 500px) {
+  .reading-card { padding: 12px 14px; }
+  .rc-word { font-size: 1rem; }
+  .rc-example { font-size: .82rem; }
+}

@@ -438,26 +438,86 @@ async function enrichCardWithAPI(word) {
 }
 
 // ====================================================
-// 0c. 词库来源说明（已内嵌5045词，无需动态拉取）
+// 0c. 多词库注册表
 // ====================================================
-// 词库已内嵌：有道背单词 KaoYan_1 / KaoYan_2 / KaoYan_3 合并，共 5045 词
-// level: 1=基础高频(前20%), 2=核心词汇(前50%), 3=考研必备(前80%), 4=拓展提升
+const VOCAB_REGISTRY = {
+  primary: { name: '小学',     icon: '🌱', desc: '1-6年级 · 约600词',           words: () => PRIMARY_WORDS  },
+  junior:  { name: '初中',     icon: '📗', desc: '7-9年级 · 约1200词',          words: () => JUNIOR_WORDS   },
+  senior:  { name: '高中',     icon: '📘', desc: '人教版必修+选修 · 约1500词',   words: () => SENIOR_WORDS   },
+  cet4:    { name: '四级',     icon: '🎓', desc: '大学英语四级 · 约2000词',      words: () => CET4_WORDS     },
+  cet6:    { name: '六级',     icon: '🏅', desc: '大学英语六级 · 约2500词',      words: () => CET6_WORDS     },
+  kaoyan:  { name: '考研',     icon: '🔥', desc: 'KaoYan核心词汇 · 5045词',     words: () => KAOYAN_WORDS   },
+};
+
+// 当前选中的词库等级（localStorage key: 'inen_level'）
+const LEVEL_KEY = 'inen_level';
+
+/** 获取当前激活的词库等级ID（默认kaoyan保证老用户无感） */
+function getActiveLevel() {
+  return localStorage.getItem(LEVEL_KEY) || null;
+}
+
+/** 切换词库等级，会重置当天词汇生成（但不影响其他等级存档） */
+function setActiveLevel(levelId) {
+  localStorage.setItem(LEVEL_KEY, levelId);
+}
+
+/** 获取当前词库的全部词汇数组 */
+function getActiveWords() {
+  const id = getActiveLevel();
+  if (id && VOCAB_REGISTRY[id]) return VOCAB_REGISTRY[id].words();
+  return KAOYAN_WORDS; // 兜底
+}
+
+/**
+ * 在全部词库中查找单词（用于故事点词、词义卡片回退）
+ * 优先从当前激活词库找，找不到再从完整词库找
+ */
+function findWordAnywhere(wordText) {
+  const lower = wordText.toLowerCase();
+  // 先从当前激活词库
+  const pool = getFilteredWords();
+  let w = pool.find(x => x.word.toLowerCase() === lower);
+  if (w) return { word: w, idx: pool.indexOf(w) };
+  // 再从全部已注册词库
+  for (const reg of Object.values(VOCAB_REGISTRY)) {
+    try {
+      const words = reg.words();
+      const found = words.find(x => x.word.toLowerCase() === lower);
+      if (found) return { word: found, idx: -1 };
+    } catch {}
+  }
+  return null;
+}
 
 // ====================================================
 // 1. 数据存储 (localStorage)
 // ====================================================
-const STORAGE_KEY = 'kaoyan_vocab_v2';
+// 每个等级用独立的 storage key，互不干扰
+function getStorageKey() {
+  const id = getActiveLevel() || 'kaoyan';
+  return `inen_vocab_${id}_v1`;
+}
+// 兼容旧版数据：如果旧版 kaoyan_vocab_v2 存在，迁移到新key
+function migrateOldData() {
+  const OLD_KEY = 'kaoyan_vocab_v2';
+  const newKey = 'inen_vocab_kaoyan_v1';
+  if (localStorage.getItem(OLD_KEY) && !localStorage.getItem(newKey)) {
+    localStorage.setItem(newKey, localStorage.getItem(OLD_KEY));
+    // 不删除老key，保留安全备份
+  }
+}
 
 function loadData() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(getStorageKey());
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }
 
 function saveData() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(AppState));
+    localStorage.setItem(getStorageKey(), JSON.stringify(AppState));
   } catch(e) { console.warn('Save failed', e); }
   // 触发 Gist 延迟同步（30s 去抖，仅已配置 Token 时生效）
   if (typeof GistSync !== 'undefined' && GistSync.isConfigured()) {
@@ -561,10 +621,11 @@ function checkNewDay() {
 // 4. 词库过滤 + 今日单词生成
 // ====================================================
 function getFilteredWords() {
+  const words = getActiveWords();
   const f = AppState.settings.levelFilter;
-  if (f === 'all') return KAOYAN_WORDS;
+  if (f === 'all') return words;
   const [min, max] = f.split('-').map(Number);
-  return KAOYAN_WORDS.filter(w => w.level >= min && w.level <= max);
+  return words.filter(w => w.level >= min && w.level <= max);
 }
 
 function generateDailyWords(dateStr) {
@@ -639,111 +700,96 @@ function getReviewWords() {
 }
 
 // ====================================================
-// 6. 今日故事生成
+// 6. 例句阅读页面渲染
 // ====================================================
-// 故事模板：每个模板返回 { en: '英文故事', zh: '中文翻译' }
-const STORY_TEMPLATES = [
-  (words) => {
-    const w = words.slice(0, Math.min(words.length, 6));
-    const variants = [
-      {
-        en: `One day, a young student decided to ${w[0]?.word || 'explore'} the world of knowledge. She knew she had to ${w[1]?.word || 'adapt'} to new challenges. Though the journey was not without ${w[2]?.word || 'conflict'}, her ${w[3]?.word || 'strategy'} proved effective. In the end, her efforts began to ${w[4]?.word || 'emerge'} as something remarkable. People around her were amazed by how she could ${w[5]?.word || 'transform'} difficulties into opportunities.`,
-        zh: `一天，一位年轻的学生决定去${w[0]?.word ? '探索（' + w[0].word + '）' : '探索'}知识的世界。她知道自己必须${w[1]?.word ? '适应（' + w[1].word + '）' : '适应'}新的挑战。尽管旅途中不乏${w[2]?.word ? '冲突（' + w[2].word + '）' : '冲突'}，她的${w[3]?.word ? '策略（' + w[3].word + '）' : '策略'}被证明行之有效。最终，她的努力开始${w[4]?.word ? '显现（' + w[4].word + '）' : '显现'}出非凡的价值。周围的人都惊叹于她如何将困难${w[5]?.word ? '转化（' + w[5].word + '）' : '转化'}为机遇。`,
-      },
-      {
-        en: `In a world full of change, learning to ${w[0]?.word || 'adapt'} is essential. A brilliant scientist set out to ${w[1]?.word || 'investigate'} a mysterious phenomenon. The research required her to ${w[2]?.word || 'analyze'} vast amounts of data. Despite the ${w[3]?.word || 'obstacle'} she faced, she did not ${w[4]?.word || 'abandon'} her goal. Eventually, her discovery helped ${w[5]?.word || 'transform'} our understanding of nature.`,
-        zh: `在一个充满变化的世界里，学会${w[0]?.word ? '适应（' + w[0].word + '）' : '适应'}至关重要。一位才华横溢的科学家开始${w[1]?.word ? '调查（' + w[1].word + '）' : '调查'}一种神秘现象。研究要求她${w[2]?.word ? '分析（' + w[2].word + '）' : '分析'}海量数据。尽管面临重重${w[3]?.word ? '障碍（' + w[3].word + '）' : '障碍'}，她并未${w[4]?.word ? '放弃（' + w[4].word + '）' : '放弃'}目标。最终，她的发现帮助人们${w[5]?.word ? '重塑（' + w[5].word + '）' : '重塑'}了对自然的认知。`,
-      },
-      {
-        en: `The city was undergoing rapid ${w[0]?.word || 'transition'}. A journalist sought to ${w[1]?.word || 'reveal'} the truth behind the changes. She had to ${w[2]?.word || 'navigate'} a complex web of information. Her editor reminded her to ${w[3]?.word || 'prioritize'} accuracy over speed. The story she published would ${w[4]?.word || 'challenge'} many conventional ${w[5]?.word || 'notion'}s about progress.`,
-        zh: `这座城市正经历快速的${w[0]?.word ? '变革（' + w[0].word + '）' : '变革'}。一位记者试图${w[1]?.word ? '揭露（' + w[1].word + '）' : '揭露'}变化背后的真相。她必须${w[2]?.word ? '穿梭（' + w[2].word + '）' : '穿梭'}于错综复杂的信息网络中。编辑提醒她要${w[3]?.word ? '优先（' + w[3].word + '）' : '优先'}考虑准确性而非速度。她发表的报道将${w[4]?.word ? '挑战（' + w[4].word + '）' : '挑战'}许多人对进步的固有${w[5]?.word ? '观念（' + w[5].word + '）' : '观念'}。`,
-      },
-      {
-        en: `The old professor decided to ${w[0]?.word || 'compile'} a dictionary of rare words. It was no easy task to ${w[1]?.word || 'distinguish'} authentic sources from unreliable ones. He would often ${w[2]?.word || 'reflect'} on the evolution of language late at night. The work helped him ${w[3]?.word || 'appreciate'} the beauty hidden in ordinary speech. Over time, the project began to ${w[4]?.word || 'inspire'} a generation of young linguists. Their shared passion would ${w[5]?.word || 'sustain'} the project for decades.`,
-        zh: `这位老教授决定${w[0]?.word ? '编纂（' + w[0].word + '）' : '编纂'}一本生僻词词典。要${w[1]?.word ? '辨别（' + w[1].word + '）' : '辨别'}可靠来源与不可靠来源并非易事。他常常在深夜${w[2]?.word ? '思考（' + w[2].word + '）' : '思考'}语言的演变。这项工作帮助他${w[3]?.word ? '领悟（' + w[3].word + '）' : '领悟'}了日常话语中隐藏的美。随着时间推移，这个项目开始${w[4]?.word ? '激励（' + w[4].word + '）' : '激励'}一代年轻语言学家。他们共同的热情将${w[5]?.word ? '支撑（' + w[5].word + '）' : '支撑'}这项工程延续数十年。`,
-      },
-      {
-        en: `To ${w[0]?.word || 'succeed'} in graduate studies, one must learn to ${w[1]?.word || 'manage'} time wisely. Every student needs to ${w[2]?.word || 'balance'} reading and practice. When you ${w[3]?.word || 'encounter'} a difficult word, do not skip it. Instead, try to ${w[4]?.word || 'memorize'} it by using it in a sentence. This method will ${w[5]?.word || 'strengthen'} your vocabulary in the long run.`,
-        zh: `要在考研中${w[0]?.word ? '成功（' + w[0].word + '）' : '成功'}，必须学会合理${w[1]?.word ? '管理（' + w[1].word + '）' : '管理'}时间。每位学生都需要${w[2]?.word ? '平衡（' + w[2].word + '）' : '平衡'}阅读与练习。当你${w[3]?.word ? '遇到（' + w[3].word + '）' : '遇到'}一个生词时，不要跳过它。相反，尝试将它用于句子中来${w[4]?.word ? '记忆（' + w[4].word + '）' : '记忆'}它。从长远来看，这种方法将${w[5]?.word ? '巩固（' + w[5].word + '）' : '巩固'}你的词汇量。`,
-      },
-    ];
-    return variants[Math.floor(Math.random() * variants.length)];
-  }
-];
 
-// 当前故事的中文翻译（供切换显示用）
-let currentStoryZh = '';
-
-function generateStory(wordIndices) {
-  const pool = getFilteredWords();
-  const words = wordIndices.map(i => pool[i]).filter(Boolean);
-  const template = STORY_TEMPLATES[0];
-  const result = template(words);
-  currentStoryZh = result.zh;
-  return result.en;
-}
-
+/**
+ * 渲染例句阅读页：展示今日所有单词的例句，支持点击查词
+ * @param {number[]} wordIndices - 今日单词在词库中的索引数组
+ */
 function renderStory(wordIndices) {
   const pool = getFilteredWords();
   const words = wordIndices.map(i => pool[i]).filter(Boolean);
-  let text = generateStory(wordIndices); // 也更新了 currentStoryZh
 
-  // 先高亮今日词汇（可点击）
-  const highlightedWords = new Set();
-  words.forEach(w => {
-    if (!w) return;
-    const re = new RegExp(`\\b(${w.word})\\b`, 'gi');
-    text = text.replace(re, (match) => {
-      const idx = pool.indexOf(w);
-      highlightedWords.add(w.word.toLowerCase());
-      return `<span class="highlight story-word-link" data-word="${w.word}" data-idx="${idx}" title="今日词汇，点击查看释义">${match}</span>`;
-    });
-  });
+  const listEl = document.getElementById('reading-list');
+  if (!listEl) return;
 
-  // 再把剩余普通英文词也包装成可点击
-  // 关键：只替换标签外的纯文本段，避免把 HTML 属性/标签名也替换掉
-  text = text.split(/(<[^>]+>)/).map((seg, i) => {
-    if (i % 2 === 1) return seg; // 奇数段是 <...> 标签，原样保留
-    // 偶数段是纯文本，在这里做词替换
-    return seg.replace(/\b([a-zA-Z]{3,})\b/g, (match) => {
-      if (highlightedWords.has(match.toLowerCase())) return match;
-      const wObj = KAOYAN_WORDS.find(w => w.word.toLowerCase() === match.toLowerCase());
-      if (!wObj) return match;
-      const idx = pool.indexOf(wObj);
-      return `<span class="story-plain-link" data-word="${match}" data-idx="${idx !== -1 ? idx : -1}" title="点击查词">${match}</span>`;
-    });
+  if (words.length === 0) {
+    listEl.innerHTML = '<div class="reading-empty">📚 今日暂无单词，请先完成学习！</div>';
+    return;
+  }
+
+  listEl.innerHTML = words.map((w, i) => {
+    const example = w.example || '';
+    // 将例句中所有英文单词包装为可点击span，重点词高亮
+    const renderedExample = renderExampleWithLinks(example, w.word, wordIndices, pool);
+    const result = learnState.results[wordIndices[i]];
+    const resultClass = result === 'correct' ? 'rc-correct'
+                      : result === 'hard'    ? 'rc-hard'
+                      : result === 'wrong'   ? 'rc-wrong' : '';
+
+    return `<div class="reading-card ${resultClass}" data-idx="${wordIndices[i]}">
+      <div class="rc-header">
+        <span class="rc-word story-word-link" data-word="${w.word}" data-idx="${wordIndices[i]}">${w.word}</span>
+        <span class="rc-phonetic">${w.phonetic || ''}</span>
+        <span class="rc-pos">${w.pos || ''}</span>
+        <button class="rc-audio-btn" data-word="${w.word}" title="发音">🔊</button>
+      </div>
+      <div class="rc-def">${w.definition || ''}</div>
+      ${example ? `<div class="rc-example">${renderedExample}</div>` : '<div class="rc-no-example">暂无例句</div>'}
+    </div>`;
   }).join('');
 
-  document.getElementById('story-text').innerHTML = text;
-
-  // 写入中文翻译
-  document.getElementById('translation-text').textContent = currentStoryZh;
-  // 换故事时折叠翻译
-  document.getElementById('story-translation').classList.add('hidden');
-  document.getElementById('toggle-translation-btn').textContent = '🌐 中文翻译';
-
-  // 渲染单词标签
-  const tagsEl = document.getElementById('story-words');
-  tagsEl.innerHTML = words.map(w =>
-    `<span class="story-tag story-word-link" data-word="${w?.word || ''}" data-idx="${pool.indexOf(w)}">${w?.word || ''}</span>`
-  ).join('');
-
-  // 绑定点击事件（高亮词）
-  document.querySelectorAll('.story-word-link').forEach(el => {
+  // 绑定词义点击
+  listEl.querySelectorAll('.story-word-link').forEach(el => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       showStoryWordCard(el.dataset.word, parseInt(el.dataset.idx));
     });
   });
 
-  // 绑定点击事件（普通词）
-  document.querySelectorAll('.story-plain-link').forEach(el => {
+  // 绑定所有可点击词（词库收录 + 未收录统一处理）
+  listEl.querySelectorAll('.rc-word-link').forEach(el => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       showStoryWordCard(el.dataset.word, parseInt(el.dataset.idx));
+    });
+  });
+
+  // 绑定发音按钮
+  listEl.querySelectorAll('.rc-audio-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      playWordAudio(btn.dataset.word);
+      btn.classList.add('audio-playing');
+      setTimeout(() => btn.classList.remove('audio-playing'), 1200);
     });
   });
 }
+
+/**
+ * 将例句文本渲染为可点击的 HTML
+ * - 今日目标词：高亮（黄色）
+ * - 所有其他词：无视觉标注，hover 时显示光标，点击可查词（跨词库查找）
+ */
+function renderExampleWithLinks(text, targetWord, allIndices, pool) {
+  if (!text) return '';
+  const targetLower = targetWord.toLowerCase();
+
+  return text.replace(/\b([a-zA-Z']{2,})\b/g, (match) => {
+    if (match.toLowerCase() === targetLower) {
+      // 高亮今日目标词
+      const idx = pool.findIndex(w => w.word.toLowerCase() === targetLower);
+      return `<span class="highlight story-word-link rc-highlight" data-word="${targetWord}" data-idx="${idx >= 0 ? idx : -1}" title="今日词汇">${match}</span>`;
+    }
+    // 其余所有词：统一可点击，不做视觉区分
+    const found = findWordAnywhere(match);
+    const idx = found ? found.idx : -1;
+    return `<span class="rc-word-link" data-word="${match}" data-idx="${idx}" title="">${match}</span>`;
+  });
+}
+
+
 
 // ====================================================
 // 6b. 故事页词义卡片
@@ -752,14 +798,27 @@ let storyWordCardIdx = null; // 当前弹出的词库索引
 
 function showStoryWordCard(wordText, idx) {
   const pool = getFilteredWords();
-  // idx可能是-1（词在全库但不在当前pool），此时直接从KAOYAN_WORDS找
+  // idx可能是-1（词在全库但不在当前pool），此时从全词库找
   const word = (idx >= 0 && pool[idx]) ? pool[idx]
-    : KAOYAN_WORDS.find(w => w.word.toLowerCase() === wordText.toLowerCase());
-  if (!word) return;
+    : (findWordAnywhere(wordText)?.word || null);
+
+  const card = document.getElementById('story-word-card');
+
+  if (!word) {
+    // 词库未收录：显示简洁提示
+    storyWordCardIdx = null;
+    document.getElementById('swc-term').textContent = wordText;
+    document.getElementById('swc-phonetic').textContent = '';
+    document.getElementById('swc-def').textContent = '该词未收录于当前词库';
+    document.getElementById('swc-hint').textContent = '💡 可在其他词库中查找';
+    card.classList.remove('hidden');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    document.getElementById('swc-audio-btn').onclick = () => playWordAudio(wordText);
+    return;
+  }
 
   storyWordCardIdx = idx; // 可能为-1，handleStoryWordAnswer会处理
 
-  const card = document.getElementById('story-word-card');
   document.getElementById('swc-term').textContent = word.word;
   document.getElementById('swc-phonetic').textContent = word.phonetic || '';
   document.getElementById('swc-def').textContent = word.definition || '';
@@ -801,9 +860,8 @@ function handleStoryWordAnswer(result) {
   const q = result === 'correct' ? 5 : result === 'hard' ? 3 : 1;
   // 如果idx<0（全库词但不在pool），需要找真实索引
   const realIdx = idx >= 0 ? idx : (() => {
-    const pool = getFilteredWords();
     const term = document.getElementById('swc-term').textContent;
-    return KAOYAN_WORDS.findIndex(w => w.word === term);
+    return findWordAnywhere(term)?.idx ?? -1;
   })();
   if (realIdx >= 0) sm2Update(realIdx, q);
 
@@ -956,8 +1014,8 @@ function completeLearnSession() {
      <span class="reward-badge" style="border-color:#a78bfa;color:#a78bfa">+${earnedXp} ⭐ XP</span>
      <span class="reward-badge" style="border-color:#4ade80;color:#4ade80">🔥 连续 ${AppState.stats.streak} 天</span>`;
 
-  // 生成今日故事
-  renderStory(learnState.queue);
+  // 预渲染例句阅读页（异步执行，不阻塞完成面板）
+  setTimeout(() => renderStory(learnState.queue), 100);
 }
 
 function handleAnswer(result) {
@@ -1226,7 +1284,7 @@ let cddPopupIdx = null;
 function showCddDefPopup(idx, wordText, results) {
   const pool = getFilteredWords();
   const word = (idx >= 0 && pool[idx]) ? pool[idx]
-    : KAOYAN_WORDS.find(w => w.word.toLowerCase() === wordText.toLowerCase());
+    : (findWordAnywhere(wordText)?.word || null);
   if (!word) return;
 
   cddPopupIdx = idx;
@@ -1305,6 +1363,7 @@ function checkLevelUp() {
 }
 
 function renderStats() {
+  updateVocabLevelDisplay();
   const s = AppState.stats;
   const pool = getFilteredWords();
   const totalWords = KAOYAN_WORDS.length; // 完整词库大小（不受level过滤影响）
@@ -1638,8 +1697,8 @@ async function refreshGistSettingsUI() {
 }
 
 function resetData() {
-  if (!confirm('确定要重置所有数据吗？此操作不可撤销！')) return;
-  localStorage.removeItem(STORAGE_KEY);
+  if (!confirm('确定要重置当前词库的所有数据吗？此操作不可撤销！')) return;
+  localStorage.removeItem(getStorageKey());
   AppState = structuredClone(DEFAULT_STATE);
   checkNewDay();
   saveData();
@@ -1647,6 +1706,78 @@ function resetData() {
   document.getElementById('settings-modal').classList.add('hidden');
   showToast('数据已重置', 'warning');
   switchPage('learn');
+}
+
+// ====================================================
+// 17a. 词库等级选择弹窗
+// ====================================================
+
+/**
+ * 打开词库选择弹窗
+ * @param {boolean} cancellable - 是否显示取消按钮（首次进入时不可取消）
+ */
+function showLevelSelectModal(cancellable = false) {
+  const modal = document.getElementById('level-select-modal');
+  const cancelBtn = document.getElementById('level-select-cancel');
+  if (!modal) return;
+
+  // 更新每张卡片的选中状态
+  const currentId = getActiveLevel();
+  document.querySelectorAll('.level-card').forEach(card => {
+    const lvlId = card.dataset.level;
+    card.classList.toggle('selected', lvlId === currentId);
+  });
+
+  if (cancelBtn) {
+    cancelBtn.classList.toggle('hidden', !cancellable);
+  }
+  modal.classList.remove('hidden');
+}
+
+function hideLevelSelectModal() {
+  const modal = document.getElementById('level-select-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+/** 选择词库等级并初始化 */
+function selectLevel(levelId) {
+  if (!VOCAB_REGISTRY[levelId]) return;
+
+  const prevId = getActiveLevel();
+  setActiveLevel(levelId);
+
+  // 切换词库后重新初始化数据（加载对应词库的 localStorage 存档）
+  initState();
+  hideLevelSelectModal();
+  updateTopBar();
+  updateVocabLevelDisplay();
+
+  // 切换后重启学习页面
+  switchPage('learn');
+
+  const reg = VOCAB_REGISTRY[levelId];
+  if (prevId && prevId !== levelId) {
+    showToast(`✅ 已切换到「${reg.icon} ${reg.name}」词库`, 'success', 2500);
+    triggerMascotAnim('happy', 2000);
+  } else if (!prevId) {
+    // 首次选择：完成剩余启动流程
+    bootApp(true);
+  } else {
+    showMascotBubble(`${reg.icon} 已切换到「${reg.name}」！`, 2000);
+  }
+}
+
+/** 更新统计页"当前词库"展示 */
+function updateVocabLevelDisplay() {
+  const el = document.getElementById('vocab-level-current');
+  if (!el) return;
+  const id = getActiveLevel();
+  if (!id || !VOCAB_REGISTRY[id]) {
+    el.textContent = '未选择词库';
+    return;
+  }
+  const reg = VOCAB_REGISTRY[id];
+  el.innerHTML = `<span class="lc-icon">${reg.icon}</span> <strong>${reg.name}</strong> <span class="lc-desc-inline">${reg.desc}</span>`;
 }
 
 // ====================================================
@@ -1698,24 +1829,7 @@ function bindEvents() {
     renderCalendar();
   });
 
-  // 故事重新生成
-  document.getElementById('regen-story-btn').addEventListener('click', () => {
-    const t = today();
-    const log = AppState.progress.dailyLog[t];
-    const indices = log?.wordIndices || AppState.progress.currentDayWords || [];
-    renderStory(indices);
-    hideStoryWordCard();
-    showToast('🎲 已生成新故事！');
-    triggerMascotAnim('happy', 2000);
-  });
-
-  // 故事中文翻译切换
-  document.getElementById('toggle-translation-btn').addEventListener('click', () => {
-    const el = document.getElementById('story-translation');
-    const btn = document.getElementById('toggle-translation-btn');
-    const hidden = el.classList.toggle('hidden');
-    btn.textContent = hidden ? '🌐 中文翻译' : '🌐 收起翻译';
-  });
+  // 阅读页面：切换到阅读页时重新渲染（在 switchPage 中处理）
 
   // 故事词义卡片关闭
   document.getElementById('swc-close').addEventListener('click', hideStoryWordCard);
@@ -1805,6 +1919,39 @@ function bindEvents() {
     triggerMascotAnim('happy', 2000);
   });
 
+  // ===== 词库等级选择弹窗事件 =====
+  // 词库卡片点击
+  document.querySelectorAll('.level-card').forEach(card => {
+    card.addEventListener('click', () => {
+      selectLevel(card.dataset.level);
+    });
+  });
+
+  // 取消按钮（仅切换时可见）
+  const levelCancelBtn = document.getElementById('level-select-cancel');
+  if (levelCancelBtn) {
+    levelCancelBtn.addEventListener('click', hideLevelSelectModal);
+  }
+
+  // 统计页"切换词库等级"按钮
+  const changeLevelBtn = document.getElementById('change-level-btn');
+  if (changeLevelBtn) {
+    changeLevelBtn.addEventListener('click', () => showLevelSelectModal(true));
+  }
+
+  // 点击遮罩关闭（仅当可取消时有效，防止首次强制选择被绕过）
+  const levelModal = document.getElementById('level-select-modal');
+  if (levelModal) {
+    levelModal.addEventListener('click', (e) => {
+      if (e.target === levelModal) {
+        const cancelBtn = document.getElementById('level-select-cancel');
+        if (cancelBtn && !cancelBtn.classList.contains('hidden')) {
+          hideLevelSelectModal();
+        }
+      }
+    });
+  }
+
   // 键盘快捷键
   document.addEventListener('keydown', (e) => {
     const activePage = document.querySelector('.page.active')?.id;
@@ -1840,16 +1987,18 @@ function bindEvents() {
 // ====================================================
 // 18. 应用启动
 // ====================================================
-document.addEventListener('DOMContentLoaded', () => {
-  initState();
-  bindEvents();
-  updateTopBar();
-  startMascotAnim('idle');
-  switchPage('learn');
 
-  // 欢迎语
+/** 应用公共启动流程（在已有词库选择之后调用） */
+function bootApp(isFirstTime = false) {
+  updateTopBar();
+  updateVocabLevelDisplay();
+
   const streak = AppState.stats.streak;
-  if (streak > 0) {
+  const reg = VOCAB_REGISTRY[getActiveLevel()];
+
+  if (isFirstTime) {
+    setTimeout(() => showMascotBubble(`${reg?.icon || '👋'} 欢迎！开始你的词汇之旅！`, 3500), 400);
+  } else if (streak > 0) {
     setTimeout(() => showMascotBubble(`🔥 连续打卡 ${streak} 天！继续加油！`, 3500), 800);
   } else {
     setTimeout(() => showMascotBubble('👋 欢迎！点击我给你加油！', 3000), 600);
@@ -1861,34 +2010,61 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => showToast(`📋 今天有 ${reviewCount} 个单词需要复习！`, 'warning', 4000), 2000);
   }
 
-  // 联网状态监听
-  function updateOnlineStatus() {
-    const el = document.getElementById('online-status');
-    const lbl = document.getElementById('online-label');
-    if (!el || !lbl) return;
-    if (navigator.onLine) {
-      el.classList.remove('offline');
-      lbl.textContent = '在线';
-      el.title = '已联网，可获取详细词典数据';
-    } else {
-      el.classList.add('offline');
-      lbl.textContent = '离线';
-      el.title = '未联网，使用本地词库';
+  // 联网状态监听（只注册一次，用标志位防重复）
+  if (!window._onlineListenerBound) {
+    window._onlineListenerBound = true;
+    function updateOnlineStatus() {
+      const el = document.getElementById('online-status');
+      const lbl = document.getElementById('online-label');
+      if (!el || !lbl) return;
+      if (navigator.onLine) {
+        el.classList.remove('offline');
+        lbl.textContent = '在线';
+        el.title = '已联网，可获取详细词典数据';
+      } else {
+        el.classList.add('offline');
+        lbl.textContent = '离线';
+        el.title = '未联网，使用本地词库';
+      }
     }
+    updateOnlineStatus();
+    window.addEventListener('online', () => {
+      updateOnlineStatus();
+      showToast('🌐 网络已连接，翻牌时将自动获取详细词典', 'success', 3000);
+    });
+    window.addEventListener('offline', () => {
+      updateOnlineStatus();
+      showToast('📴 网络断开，使用本地词库继续学习', 'warning', 3000);
+    });
   }
-  updateOnlineStatus();
-  window.addEventListener('online', () => {
-    updateOnlineStatus();
-    showToast('🌐 网络已连接，翻牌时将自动获取详细词典', 'success', 3000);
-  });
-  window.addEventListener('offline', () => {
-    updateOnlineStatus();
-    showToast('📴 网络断开，使用本地词库继续学习', 'warning', 3000);
-  });
 
   // 启动时从 Gist 拉取云端进度并合并
   if (typeof GistSync !== 'undefined') {
     GistSync.setSyncStatus('idle');
     setTimeout(() => GistSync.syncOnStart(), 1200);
   }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  migrateOldData();
+
+  // ① 检测是否已选词库
+  const savedLevel = getActiveLevel();
+
+  bindEvents();
+  startMascotAnim('idle');
+
+  if (!savedLevel) {
+    // 首次进入：弹出词库选择弹窗（不可取消）
+    AppState = structuredClone(DEFAULT_STATE);
+    updateTopBar();
+    showLevelSelectModal(false);
+    // 用户选完后，selectLevel → bootApp(true) 继续启动
+    return;
+  }
+
+  // ② 已有词库选择：正常启动
+  initState();
+  switchPage('learn');
+  bootApp(false);
 });

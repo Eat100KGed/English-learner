@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>iNEnglish — 考研词汇打卡</title>
+<title>iNEnglish · 英语词汇打卡</title>
 <link rel="stylesheet" href="vocab-style.css">
 </head>
 <body>
@@ -53,8 +53,8 @@
       <span class="nav-label">打卡日历</span>
     </button>
     <button class="nav-item" data-page="story">
-      <span class="nav-icon">📜</span>
-      <span class="nav-label">今日故事</span>
+      <span class="nav-icon">📖</span>
+      <span class="nav-label">例句阅读</span>
     </button>
     <button class="nav-item" data-page="stats">
       <span class="nav-icon">📊</span>
@@ -101,7 +101,7 @@
           <h3 class="pixel-title">今日学习完成！</h3>
           <p id="complete-summary"></p>
           <div class="reward-display" id="reward-display"></div>
-          <button class="pixel-btn big" id="go-story-btn">📜 读今日故事</button>
+          <button class="pixel-btn big" id="go-story-btn">📖 阅读例句</button>
           <button class="pixel-btn big secondary" id="go-review-btn">🔄 开始复习</button>
         </div>
       </div>
@@ -188,26 +188,17 @@
       </div>
     </section>
 
-    <!-- == 页面：今日故事 == -->
+    <!-- == 页面：例句阅读 == -->
     <section id="page-story" class="page">
       <div class="page-header">
-        <h2 class="pixel-title">📜 今日故事</h2>
-        <p class="sub-text">高亮词可点击查看释义，点击任意单词均可查词</p>
+        <h2 class="pixel-title">📖 例句阅读</h2>
+        <p class="sub-text">今日词汇例句精选，点击单词可查看释义</p>
       </div>
-      <div class="story-card" id="story-card">
-        <div class="story-text" id="story-text">加载中...</div>
-        <!-- 中文翻译区域（默认折叠） -->
-        <div class="story-translation hidden" id="story-translation">
-          <div class="translation-label">📝 中文翻译</div>
-          <div class="translation-text" id="translation-text"></div>
-        </div>
-        <div class="story-words" id="story-words"></div>
+      <!-- 例句列表 -->
+      <div class="reading-list" id="reading-list">
+        <div class="reading-loading">加载中...</div>
       </div>
-      <div class="story-actions">
-        <button class="pixel-btn" id="regen-story-btn">🎲 换一个故事</button>
-        <button class="pixel-btn secondary" id="toggle-translation-btn">🌐 中文翻译</button>
-      </div>
-      <!-- 单词弹出卡片（点击故事高亮词触发） -->
+      <!-- 单词弹出卡片（点击例句中词汇触发） -->
       <div class="story-word-card hidden" id="story-word-card">
         <div class="swc-header">
           <span class="swc-term" id="swc-term"></span>
@@ -229,6 +220,12 @@
     <section id="page-stats" class="page">
       <div class="page-header">
         <h2 class="pixel-title">📊 我的数据</h2>
+      </div>
+      <!-- 词库切换区域 -->
+      <div class="vocab-switch-wrap" id="vocab-switch-wrap">
+        <h3 class="section-title">📚 当前词库</h3>
+        <div class="vocab-level-current" id="vocab-level-current">加载中...</div>
+        <button class="pixel-btn secondary sm" id="change-level-btn">🔄 切换词库等级</button>
       </div>
       <div class="stats-grid" id="stats-grid"></div>
       <div class="level-bar-wrap">
@@ -265,8 +262,8 @@
     <span class="nav-label">打卡</span>
   </button>
   <button class="nav-item" data-page="story">
-    <span class="nav-icon">📜</span>
-    <span class="nav-label">故事</span>
+    <span class="nav-icon">📖</span>
+    <span class="nav-label">阅读</span>
   </button>
   <button class="nav-item" data-page="stats">
     <span class="nav-icon">📊</span>
@@ -336,7 +333,53 @@
 <!-- ===== Toast 提示 ===== -->
 <div class="toast-container" id="toast-container"></div>
 
+<!-- ===== 等级选择弹窗（首次打开 / 主动切换） ===== -->
+<div class="modal-overlay hidden" id="level-select-modal">
+  <div class="modal pixel-modal level-select-modal">
+    <h3 class="pixel-title">📚 选择学习等级</h3>
+    <p class="modal-sub">每个等级独立记录，互不干扰</p>
+    <div class="level-cards" id="level-cards">
+      <button class="level-card" data-level="primary">
+        <span class="lc-icon">🌱</span>
+        <span class="lc-name">小学</span>
+        <span class="lc-desc">1-6年级 · 约600词</span>
+      </button>
+      <button class="level-card" data-level="junior">
+        <span class="lc-icon">📗</span>
+        <span class="lc-name">初中</span>
+        <span class="lc-desc">7-9年级 · 约1200词</span>
+      </button>
+      <button class="level-card" data-level="senior">
+        <span class="lc-icon">📘</span>
+        <span class="lc-name">高中</span>
+        <span class="lc-desc">人教版必修+选修 · 约1500词</span>
+      </button>
+      <button class="level-card" data-level="cet4">
+        <span class="lc-icon">🎓</span>
+        <span class="lc-name">四级 CET-4</span>
+        <span class="lc-desc">大学英语四级 · 约2000词</span>
+      </button>
+      <button class="level-card" data-level="cet6">
+        <span class="lc-icon">🏅</span>
+        <span class="lc-name">六级 CET-6</span>
+        <span class="lc-desc">大学英语六级 · 约2500词</span>
+      </button>
+      <button class="level-card" data-level="kaoyan">
+        <span class="lc-icon">🔥</span>
+        <span class="lc-name">考研</span>
+        <span class="lc-desc">KaoYan 核心词汇 · 5045词</span>
+      </button>
+    </div>
+    <button class="pixel-btn secondary sm level-select-cancel hidden" id="level-select-cancel">取消</button>
+  </div>
+</div>
+
 <!-- ===== 脚本 ===== -->
+<script src="words_primary.js"></script>
+<script src="words_junior.js"></script>
+<script src="words_senior.js"></script>
+<script src="words_cet4.js"></script>
+<script src="words_cet6.js"></script>
 <script src="words_kaoyan.js"></script>
 <script src="sync-gist.js"></script>
 <script src="vocab-app.js"></script>
